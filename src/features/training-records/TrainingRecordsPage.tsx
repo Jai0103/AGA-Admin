@@ -4,12 +4,15 @@ import {
   FileText,
   Plus,
   Search,
-  SlidersHorizontal,
   Timer
 } from "lucide-react";
 import { useMemo, useState } from "react";
 
+import { EmptyState } from "../../components/ui/EmptyState";
+import { FilterSelect } from "../../components/ui/FilterSelect";
+import { PageHeader } from "../../components/ui/PageHeader";
 import { StatusBadge } from "../../components/ui/StatusBadge";
+import { SummaryCard } from "../../components/ui/SummaryCard";
 import { trainingRecords } from "./training-record.data";
 import type {
   TrainingRecordFilters,
@@ -110,54 +113,46 @@ export function TrainingRecordsPage() {
 
   return (
     <div className="space-y-6">
-      <section className="overflow-hidden rounded-3xl border border-white/70 bg-white/86 shadow-panel backdrop-blur-xl dark:border-white/10 dark:bg-white/7">
-        <div className="border-l-4 border-brand-coral p-6 sm:p-8">
-          <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
-            <div>
-              <span className="inline-flex items-center gap-2 rounded-xl border border-brand-coral/20 bg-brand-coral/10 px-3 py-1 text-sm font-bold text-brand-blue">
-                <ClipboardList size={16} />
-                Training Records
-              </span>
-              <h2 className="mt-4 text-3xl font-black tracking-tight sm:text-4xl">
-                Records
-              </h2>
-              <p className="mt-2 max-w-3xl text-slate-600 dark:text-slate-300">
-                Review lesson entries, assessment outcomes, completion records,
-                trainer remarks, training duration, and supporting PDFs.
-              </p>
-            </div>
-
-            <button
-              type="button"
-              className="inline-flex items-center justify-center gap-2 rounded-2xl bg-brand-blue px-5 py-3 text-sm font-bold text-white shadow-glow transition hover:bg-brand-navy"
-            >
-              <Plus size={18} />
-              New Record
-            </button>
-          </div>
-        </div>
-      </section>
+      <PageHeader
+        eyebrow="Training Records"
+        title="Records"
+        description="Review lesson entries, assessment outcomes, completion records, trainer remarks, training duration, and supporting PDFs."
+        icon={ClipboardList}
+        accentClassName="border-brand-coral"
+      >
+        <button
+          type="button"
+          className="inline-flex items-center justify-center gap-2 rounded-2xl bg-brand-blue px-5 py-3 text-sm font-bold text-white shadow-glow transition hover:bg-brand-navy"
+        >
+          <Plus size={18} />
+          New Record
+        </button>
+      </PageHeader>
 
       <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <SummaryCard
           label="Recorded Time"
           value={formatDuration(summary.totalDuration)}
           icon={Timer}
+          tone="coral"
         />
         <SummaryCard
           label="Assessments"
           value={String(summary.assessments)}
           icon={ClipboardList}
+          tone="blue"
         />
         <SummaryCard
           label="Passed or Complete"
           value={String(summary.passed)}
           icon={BarChart3}
+          tone="emerald"
         />
         <SummaryCard
           label="PDF Records"
           value={String(summary.pdfs)}
           icon={FileText}
+          tone="amber"
         />
       </section>
 
@@ -216,135 +211,124 @@ export function TrainingRecordsPage() {
         </div>
       </section>
 
-      <section className="hidden overflow-hidden rounded-3xl border border-white/70 bg-white/86 shadow-panel backdrop-blur-xl dark:border-white/10 dark:bg-white/7 xl:block">
-        <table className="w-full border-collapse text-left text-sm">
-          <thead className="border-b border-slate-200 text-xs uppercase tracking-[0.14em] text-slate-500 dark:border-white/10 dark:text-slate-400">
-            <tr>
-              <th className="px-5 py-4">Record</th>
-              <th className="px-5 py-4">Student</th>
-              <th className="px-5 py-4">Module</th>
-              <th className="px-5 py-4">Result</th>
-              <th className="px-5 py-4">Trainer</th>
-              <th className="px-5 py-4">PDF</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-200 dark:divide-white/10">
+      {filteredRecords.length === 0 ? (
+        <EmptyState
+          icon={ClipboardList}
+          title="No training records found"
+          description="Try adjusting the search or filters to find a training record."
+        />
+      ) : (
+        <>
+          <section className="hidden overflow-hidden rounded-3xl border border-white/70 bg-white/86 shadow-panel backdrop-blur-xl dark:border-white/10 dark:bg-white/7 xl:block">
+            <table className="w-full border-collapse text-left text-sm">
+              <thead className="border-b border-slate-200 text-xs uppercase tracking-[0.14em] text-slate-500 dark:border-white/10 dark:text-slate-400">
+                <tr>
+                  <th className="px-5 py-4">Record</th>
+                  <th className="px-5 py-4">Student</th>
+                  <th className="px-5 py-4">Module</th>
+                  <th className="px-5 py-4">Result</th>
+                  <th className="px-5 py-4">Trainer</th>
+                  <th className="px-5 py-4">PDF</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-200 dark:divide-white/10">
+                {filteredRecords.map((record) => (
+                  <tr key={record.recordId} className="align-top">
+                    <td className="px-5 py-5">
+                      <div className="font-bold">{record.recordId}</div>
+                      <div className="mt-1 text-slate-500 dark:text-slate-400">
+                        {record.recordType}
+                      </div>
+                      <div className="mt-2 text-slate-500 dark:text-slate-400">
+                        {formatDate(record.recordDate)}
+                      </div>
+                    </td>
+                    <td className="px-5 py-5">
+                      <div className="font-semibold">{record.studentName}</div>
+                      <div className="mt-1 text-slate-500 dark:text-slate-400">
+                        {record.studentNumber}
+                      </div>
+                      <div className="mt-2 text-slate-500 dark:text-slate-400">
+                        {record.courseCode}
+                      </div>
+                    </td>
+                    <td className="px-5 py-5">
+                      <div className="font-semibold">{record.moduleName}</div>
+                      <div className="mt-1 text-slate-500 dark:text-slate-400">
+                        {record.courseName}
+                      </div>
+                      <p className="mt-3 text-slate-600 dark:text-slate-300">
+                        {record.remarks}
+                      </p>
+                    </td>
+                    <td className="px-5 py-5">
+                      <StatusBadge value={record.result} />
+                      <div className="mt-3 font-semibold">
+                        Score: {record.score ?? "-"}
+                      </div>
+                      <div className="mt-1 text-slate-500 dark:text-slate-400">
+                        {formatDuration(record.durationMinutes)}
+                      </div>
+                    </td>
+                    <td className="px-5 py-5 text-slate-600 dark:text-slate-300">
+                      {record.trainerName}
+                    </td>
+                    <td className="px-5 py-5">
+                      {record.pdfUrl ? (
+                        <a
+                          href={record.pdfUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-3 py-2 font-bold text-brand-blue dark:border-white/10 dark:bg-white/5"
+                        >
+                          <FileText size={16} />
+                          View PDF
+                        </a>
+                      ) : (
+                        <span className="text-slate-400">No PDF</span>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </section>
+
+          <section className="grid gap-4 xl:hidden">
             {filteredRecords.map((record) => (
-              <tr key={record.recordId} className="align-top">
-                <td className="px-5 py-5">
-                  <div className="font-bold">{record.recordId}</div>
-                  <div className="mt-1 text-slate-500 dark:text-slate-400">
-                    {record.recordType}
+              <article
+                key={record.recordId}
+                className="rounded-3xl border border-white/70 bg-white/86 p-5 shadow-panel backdrop-blur-xl dark:border-white/10 dark:bg-white/7"
+              >
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <p className="text-lg font-black">{record.moduleName}</p>
+                    <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+                      {record.studentName} · {record.courseCode}
+                    </p>
                   </div>
-                  <div className="mt-2 text-slate-500 dark:text-slate-400">
-                    {formatDate(record.recordDate)}
-                  </div>
-                </td>
-                <td className="px-5 py-5">
-                  <div className="font-semibold">{record.studentName}</div>
-                  <div className="mt-1 text-slate-500 dark:text-slate-400">
-                    {record.studentNumber}
-                  </div>
-                  <div className="mt-2 text-slate-500 dark:text-slate-400">
-                    {record.courseCode}
-                  </div>
-                </td>
-                <td className="px-5 py-5">
-                  <div className="font-semibold">{record.moduleName}</div>
-                  <div className="mt-1 text-slate-500 dark:text-slate-400">
-                    {record.courseName}
-                  </div>
-                  <p className="mt-3 text-slate-600 dark:text-slate-300">
-                    {record.remarks}
-                  </p>
-                </td>
-                <td className="px-5 py-5">
                   <StatusBadge value={record.result} />
-                  <div className="mt-3 font-semibold">
-                    Score: {record.score ?? "-"}
-                  </div>
-                  <div className="mt-1 text-slate-500 dark:text-slate-400">
-                    {formatDuration(record.durationMinutes)}
-                  </div>
-                </td>
-                <td className="px-5 py-5 text-slate-600 dark:text-slate-300">
-                  {record.trainerName}
-                </td>
-                <td className="px-5 py-5">
-                  {record.pdfUrl ? (
-                    <a
-                      href={record.pdfUrl}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-3 py-2 font-bold text-brand-blue dark:border-white/10 dark:bg-white/5"
-                    >
-                      <FileText size={16} />
-                      View PDF
-                    </a>
-                  ) : (
-                    <span className="text-slate-400">No PDF</span>
-                  )}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </section>
+                </div>
 
-      <section className="grid gap-4 xl:hidden">
-        {filteredRecords.map((record) => (
-          <article
-            key={record.recordId}
-            className="rounded-3xl border border-white/70 bg-white/86 p-5 shadow-panel backdrop-blur-xl dark:border-white/10 dark:bg-white/7"
-          >
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <p className="text-lg font-black">{record.moduleName}</p>
-                <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-                  {record.studentName} · {record.courseCode}
+                <div className="mt-4 grid grid-cols-2 gap-3 text-sm text-slate-600 dark:text-slate-300">
+                  <Detail label="Type" value={record.recordType} />
+                  <Detail label="Date" value={formatDate(record.recordDate)} />
+                  <Detail
+                    label="Duration"
+                    value={formatDuration(record.durationMinutes)}
+                  />
+                  <Detail label="Score" value={String(record.score ?? "-")} />
+                </div>
+
+                <p className="mt-4 text-sm text-slate-500 dark:text-slate-400">
+                  {record.remarks}
                 </p>
-              </div>
-              <StatusBadge value={record.result} />
-            </div>
-
-            <div className="mt-4 grid grid-cols-2 gap-3 text-sm text-slate-600 dark:text-slate-300">
-              <Detail label="Type" value={record.recordType} />
-              <Detail label="Date" value={formatDate(record.recordDate)} />
-              <Detail label="Duration" value={formatDuration(record.durationMinutes)} />
-              <Detail label="Score" value={String(record.score ?? "-")} />
-            </div>
-
-            <p className="mt-4 text-sm text-slate-500 dark:text-slate-400">
-              {record.remarks}
-            </p>
-          </article>
-        ))}
-      </section>
+              </article>
+            ))}
+          </section>
+        </>
+      )}
     </div>
-  );
-}
-
-type SummaryCardProps = {
-  label: string;
-  value: string;
-  icon: typeof ClipboardList;
-};
-
-function SummaryCard({ label, value, icon: Icon }: SummaryCardProps) {
-  return (
-    <article className="rounded-2xl border border-white/70 bg-white/86 p-5 shadow-panel backdrop-blur-xl dark:border-white/10 dark:bg-white/7">
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <p className="text-sm font-semibold text-slate-500 dark:text-slate-400">
-            {label}
-          </p>
-          <strong className="mt-3 block text-3xl font-black">{value}</strong>
-        </div>
-        <span className="rounded-2xl bg-brand-coral/10 p-3 text-brand-coral">
-          <Icon size={20} />
-        </span>
-      </div>
-    </article>
   );
 }
 
@@ -359,33 +343,5 @@ function Detail({ label, value }: DetailProps) {
       <p className="text-xs font-bold uppercase text-slate-400">{label}</p>
       {value}
     </div>
-  );
-}
-
-type FilterSelectProps = {
-  label: string;
-  value: string;
-  options: string[];
-  onChange: (value: string) => void;
-};
-
-function FilterSelect({ label, value, options, onChange }: FilterSelectProps) {
-  return (
-    <label className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white/80 px-4 py-3 dark:border-white/10 dark:bg-white/5">
-      <SlidersHorizontal size={18} className="text-slate-400" />
-      <span className="sr-only">{label}</span>
-      <select
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-        className="min-w-40 bg-transparent text-sm font-semibold outline-none"
-        aria-label={label}
-      >
-        {options.map((option) => (
-          <option key={option} value={option}>
-            {option}
-          </option>
-        ))}
-      </select>
-    </label>
   );
 }
