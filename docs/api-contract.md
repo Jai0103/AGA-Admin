@@ -1,12 +1,19 @@
 # AGA SIS API Contract
 
-This document defines the first planned REST-style API contract for the Google
-Apps Script backend.
+This document defines the planned REST-style API contract for the Google Apps
+Script backend.
 
 The frontend will call one deployed Google Apps Script web app URL:
 
 ```txt
 VITE_APPS_SCRIPT_API_URL=https://script.google.com/macros/s/YOUR_DEPLOYMENT_ID/exec
+```
+
+Important invoice rule:
+
+```txt
+Invoices are created and processed in the finance system.
+AGA Admin only uploads, stores, lists, and links invoice PDFs.
 ```
 
 All responses should use this shape:
@@ -33,9 +40,6 @@ Error response:
 ```
 
 ## Request Pattern
-
-Google Apps Script web apps work well with query parameters for `GET` requests
-and JSON payloads for `POST` requests.
 
 Example:
 
@@ -152,7 +156,7 @@ Response data:
 }
 ```
 
-## File Endpoints
+## General File Endpoints
 
 ### List Files
 
@@ -180,8 +184,8 @@ Request body:
 {
   "studentId": "STU-000001",
   "enrolmentId": "ENR-000001",
-  "module": "Certificates",
-  "fileName": "certificate.pdf",
+  "module": "TrainingRecords",
+  "fileName": "training-record.pdf",
   "mimeType": "application/pdf",
   "base64": "BASE64_FILE_CONTENT"
 }
@@ -192,6 +196,56 @@ Response data:
 ```json
 {
   "file": {
+    "driveFileId": "",
+    "driveUrl": ""
+  }
+}
+```
+
+## Invoice PDF Endpoints
+
+### List Invoice PDFs
+
+```txt
+GET /exec?action=listInvoiceFiles&studentId=STU-000001
+```
+
+Response data:
+
+```json
+{
+  "invoiceFiles": []
+}
+```
+
+### Upload Invoice PDF
+
+```txt
+POST /exec?action=uploadInvoiceFile
+```
+
+Request body:
+
+```json
+{
+  "studentId": "STU-000001",
+  "enrolmentId": "ENR-000001",
+  "invoiceNumber": "INV-2026-00018",
+  "invoiceDate": "2026-07-31",
+  "financeSystemReference": "FIN-REF-12345",
+  "fileName": "INV-2026-00018 - Student Name.pdf",
+  "mimeType": "application/pdf",
+  "base64": "BASE64_FILE_CONTENT",
+  "notes": "Invoice exported from finance system."
+}
+```
+
+Response data:
+
+```json
+{
+  "invoiceFile": {
+    "invoiceFileId": "",
     "driveFileId": "",
     "driveUrl": ""
   }
