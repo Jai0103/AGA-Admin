@@ -4,7 +4,6 @@ import {
   FileSignature,
   FileText,
   Plus,
-  ReceiptText,
   Search
 } from "lucide-react";
 import { useMemo, useState } from "react";
@@ -18,7 +17,7 @@ import { trainingEnrolments } from "./enrolment.data";
 import type {
   AgreementStatus,
   EnrolmentFilters,
-  EnrolmentPaymentStatus,
+  EnrolmentInvoicePdfStatus,
   EnrolmentStatus
 } from "./enrolment.types";
 
@@ -40,19 +39,13 @@ const agreementStatuses: Array<"All" | AgreementStatus> = [
   "Rejected"
 ];
 
-const paymentStatuses: Array<"All" | EnrolmentPaymentStatus> = [
+const invoicePdfStatuses: Array<"All" | EnrolmentInvoicePdfStatus> = [
   "All",
-  "Unpaid",
-  "Deposit Paid",
-  "Paid",
-  "Overdue"
+  "No Invoice PDF",
+  "Uploaded",
+  "Missing",
+  "Needs Replacement"
 ];
-
-const currencyFormatter = new Intl.NumberFormat("en-SG", {
-  style: "currency",
-  currency: "SGD",
-  maximumFractionDigits: 0
-});
 
 function formatDate(value?: string) {
   if (!value) return "-";
@@ -69,7 +62,7 @@ export function TrainingEnrolmentsPage() {
     search: "",
     status: "All",
     agreementStatus: "All",
-    paymentStatus: "All"
+    invoicePdfStatus: "All"
   });
 
   const filteredEnrolments = useMemo(() => {
@@ -91,11 +84,11 @@ export function TrainingEnrolmentsPage() {
         filters.agreementStatus === "All" ||
         enrolment.agreementStatus === filters.agreementStatus;
 
-      const matchesPayment =
-        filters.paymentStatus === "All" ||
-        enrolment.paymentStatus === filters.paymentStatus;
+      const matchesInvoicePdf =
+        filters.invoicePdfStatus === "All" ||
+        enrolment.invoicePdfStatus === filters.invoicePdfStatus;
 
-      return matchesSearch && matchesStatus && matchesAgreement && matchesPayment;
+      return matchesSearch && matchesStatus && matchesAgreement && matchesInvoicePdf;
     });
   }, [filters]);
 
@@ -109,12 +102,12 @@ export function TrainingEnrolmentsPage() {
     const signedAgreements = trainingEnrolments.filter(
       (enrolment) => enrolment.agreementStatus === "Signed"
     ).length;
-    const totalBalance = trainingEnrolments.reduce(
-      (total, enrolment) => total + enrolment.invoiceBalance,
+    const invoicePdfs = trainingEnrolments.reduce(
+      (total, enrolment) => total + enrolment.invoicePdfCount,
       0
     );
 
-    return { inTraining, pendingReview, signedAgreements, totalBalance };
+    return { inTraining, pendingReview, signedAgreements, invoicePdfs };
   }, []);
 
   return (
@@ -122,7 +115,7 @@ export function TrainingEnrolmentsPage() {
       <PageHeader
         eyebrow="Training Enrolments"
         title="Enrolments"
-        description="Track course enrolments, training progress, TEA signatures, registration form verification, invoices, and uploaded PDFs."
+        description="Track course enrolments, training progress, TEA signatures, registration form verification, uploaded finance invoice PDFs, and supporting documents."
         icon={BookOpenCheck}
         accentClassName="border-brand-sky"
       >
@@ -155,9 +148,9 @@ export function TrainingEnrolmentsPage() {
           tone="emerald"
         />
         <SummaryCard
-          label="Invoice Balance"
-          value={currencyFormatter.format(summary.totalBalance)}
-          icon={ReceiptText}
+          label="Invoice PDFs"
+          value={String(summary.invoicePdfs)}
+          icon={FileText}
           tone="rose"
         />
       </section>
@@ -204,13 +197,13 @@ export function TrainingEnrolmentsPage() {
           />
 
           <FilterSelect
-            label="Payment status"
-            value={filters.paymentStatus}
-            options={paymentStatuses}
+            label="Invoice PDF status"
+            value={filters.invoicePdfStatus}
+            options={invoicePdfStatuses}
             onChange={(value) =>
               setFilters((current) => ({
                 ...current,
-                paymentStatus: value as EnrolmentFilters["paymentStatus"]
+                invoicePdfStatus: value as EnrolmentFilters["invoicePdfStatus"]
               }))
             }
           />
@@ -233,7 +226,7 @@ export function TrainingEnrolmentsPage() {
                   <th className="px-5 py-4">Student</th>
                   <th className="px-5 py-4">Schedule</th>
                   <th className="px-5 py-4">Documents</th>
-                  <th className="px-5 py-4">Invoice</th>
+                  <th className="px-5 py-4">Invoice PDF</th>
                   <th className="px-5 py-4">Notes</th>
                 </tr>
               </thead>
@@ -274,16 +267,17 @@ export function TrainingEnrolmentsPage() {
                       </div>
                       <div className="mt-3 flex items-center gap-2 text-slate-500 dark:text-slate-400">
                         <FileText size={16} />
-                        {enrolment.uploadedPdfCount} PDFs
+                        {enrolment.uploadedPdfCount} total PDFs
                       </div>
                     </td>
                     <td className="px-5 py-5">
                       <div className="font-semibold">{enrolment.invoiceNumber}</div>
                       <div className="mt-2">
-                        <StatusBadge value={enrolment.paymentStatus} />
+                        <StatusBadge value={enrolment.invoicePdfStatus} />
                       </div>
                       <div className="mt-3 font-semibold">
-                        {currencyFormatter.format(enrolment.invoiceBalance)}
+                        {enrolment.invoicePdfCount} invoice PDF
+                        {enrolment.invoicePdfCount === 1 ? "" : "s"}
                       </div>
                     </td>
                     <td className="px-5 py-5 text-slate-600 dark:text-slate-300">
@@ -325,9 +319,9 @@ export function TrainingEnrolmentsPage() {
                   </div>
                   <div>
                     <p className="text-xs font-bold uppercase text-slate-400">
-                      Payment
+                      Invoice PDF
                     </p>
-                    <StatusBadge value={enrolment.paymentStatus} />
+                    <StatusBadge value={enrolment.invoicePdfStatus} />
                   </div>
                 </div>
 
