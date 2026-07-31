@@ -1,6 +1,6 @@
 import { lazy, Suspense } from "react";
 import type { ReactNode } from "react";
-import { createBrowserRouter, Navigate } from "react-router-dom";
+import { createHashRouter, Navigate } from "react-router-dom";
 
 import { AppLayout } from "./components/layout/AppLayout";
 import { PlaceholderPage } from "./features/shared/PlaceholderPage";
@@ -28,7 +28,7 @@ function LazyPage({ children }: { children: ReactNode }) {
   );
 }
 
-export const router = createBrowserRouter([
+export const router = createHashRouter([
   {
     path: "/",
     element: <AppLayout />,
