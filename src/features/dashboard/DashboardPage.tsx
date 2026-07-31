@@ -21,6 +21,7 @@ import {
   YAxis
 } from "recharts";
 
+import { BackendStatusCard } from "../../components/ui/BackendStatusCard";
 import { MetricCard } from "../../components/ui/MetricCard";
 import {
   activityTrend,
@@ -56,8 +57,8 @@ export function DashboardPage() {
                 Dashboard
               </h2>
               <p className="mt-2 max-w-3xl text-slate-600 dark:text-slate-300">
-                Monitor student records, enrolments, certificates, invoices,
-                uploads, and operational activity across Apollo Global Academy.
+                Monitor student records, enrolments, certificates, uploaded
+                PDFs, and operational activity across Apollo Global Academy.
               </p>
             </div>
 
@@ -72,35 +73,39 @@ export function DashboardPage() {
         </div>
       </section>
 
-      <section className="rounded-3xl border border-emerald-200 bg-emerald-50/76 shadow-panel backdrop-blur-xl dark:border-emerald-400/20 dark:bg-emerald-400/10">
-        <div className="grid gap-5 p-5 lg:grid-cols-[1fr_auto] lg:items-center">
-          <div className="flex gap-4">
-            <div className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-emerald-100 text-emerald-700 dark:bg-emerald-400/20 dark:text-emerald-200">
-              <BadgeCheck size={22} />
+      <section className="grid gap-6 xl:grid-cols-[1fr_0.72fr]">
+        <section className="rounded-3xl border border-emerald-200 bg-emerald-50/76 shadow-panel backdrop-blur-xl dark:border-emerald-400/20 dark:bg-emerald-400/10">
+          <div className="grid gap-5 p-5 lg:grid-cols-[1fr_auto] lg:items-center">
+            <div className="flex gap-4">
+              <div className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-emerald-100 text-emerald-700 dark:bg-emerald-400/20 dark:text-emerald-200">
+                <BadgeCheck size={22} />
+              </div>
+              <div>
+                <p className="text-sm font-black uppercase tracking-[0.16em] text-emerald-700 dark:text-emerald-300">
+                  Compliance Monitoring
+                </p>
+                <h3 className="mt-2 text-xl font-black">
+                  SIS data quality is within its target operating range
+                </h3>
+                <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
+                  Certificate templates, PDF links, enrolment agreements, and
+                  student records are being tracked for audit readiness.
+                </p>
+              </div>
             </div>
-            <div>
-              <p className="text-sm font-black uppercase tracking-[0.16em] text-emerald-700 dark:text-emerald-300">
-                Compliance Monitoring
-              </p>
-              <h3 className="mt-2 text-xl font-black">
-                SIS data quality is within its target operating range
-              </h3>
-              <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
-                Certificate templates, PDF links, enrolment agreements, and
-                invoice records are being tracked for audit readiness.
-              </p>
-            </div>
-          </div>
 
-          <div className="flex flex-wrap gap-3">
-            <button className="rounded-2xl border border-slate-300 bg-white/80 px-4 py-3 text-sm font-bold text-brand-navy shadow-sm dark:border-white/10 dark:bg-white/10 dark:text-white">
-              Review Exceptions
-            </button>
-            <button className="rounded-2xl bg-brand-navy px-4 py-3 text-sm font-bold text-white shadow-glow">
-              Export Report
-            </button>
+            <div className="flex flex-wrap gap-3">
+              <button className="rounded-2xl border border-slate-300 bg-white/80 px-4 py-3 text-sm font-bold text-brand-navy shadow-sm dark:border-white/10 dark:bg-white/10 dark:text-white">
+                Review Exceptions
+              </button>
+              <button className="rounded-2xl bg-brand-navy px-4 py-3 text-sm font-bold text-white shadow-glow">
+                Export Report
+              </button>
+            </div>
           </div>
-        </div>
+        </section>
+
+        <BackendStatusCard />
       </section>
 
       <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6">
@@ -120,8 +125,8 @@ export function DashboardPage() {
                 Monthly SIS Activity
               </h3>
               <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-                Enrolments, completions, and invoices updated over the last 6
-                months.
+                Enrolments, completions, and document records updated over the
+                last 6 months.
               </p>
             </div>
 
