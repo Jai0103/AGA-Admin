@@ -19,11 +19,11 @@ export type CertificateStatus =
   | "Issued"
   | "Expired";
 
-export type PaymentStatus =
-  | "Unpaid"
-  | "Partial"
-  | "Paid"
-  | "Overdue";
+export type InvoicePdfStatus =
+  | "No Invoice PDF"
+  | "Uploaded"
+  | "Missing"
+  | "Needs Replacement";
 
 export type Student = {
   studentId: string;
@@ -42,8 +42,8 @@ export type Student = {
   completionDate?: string;
   activeCourse: string;
   certificateStatus: CertificateStatus;
-  paymentStatus: PaymentStatus;
-  invoiceBalance: number;
+  invoicePdfStatus: InvoicePdfStatus;
+  invoicePdfCount: number;
   uploadedPdfCount: number;
   qrCodeValue: string;
   updatedAt: string;
@@ -53,5 +53,5 @@ export type StudentFilters = {
   search: string;
   status: "All" | StudentStatus;
   trainingStatus: "All" | TrainingStatus;
-  paymentStatus: "All" | PaymentStatus;
+  invoicePdfStatus: "All" | InvoicePdfStatus;
 };
