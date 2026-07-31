@@ -15,7 +15,7 @@ import { StatusBadge } from "../../components/ui/StatusBadge";
 import { SummaryCard } from "../../components/ui/SummaryCard";
 import { students } from "./student.data";
 import type {
-  PaymentStatus,
+  InvoicePdfStatus,
   StudentFilters,
   StudentStatus,
   TrainingStatus
@@ -39,19 +39,13 @@ const trainingStatuses: Array<"All" | TrainingStatus> = [
   "Suspended"
 ];
 
-const paymentStatuses: Array<"All" | PaymentStatus> = [
+const invoicePdfStatuses: Array<"All" | InvoicePdfStatus> = [
   "All",
-  "Unpaid",
-  "Partial",
-  "Paid",
-  "Overdue"
+  "No Invoice PDF",
+  "Uploaded",
+  "Missing",
+  "Needs Replacement"
 ];
-
-const currencyFormatter = new Intl.NumberFormat("en-SG", {
-  style: "currency",
-  currency: "SGD",
-  maximumFractionDigits: 0
-});
 
 function formatDate(value?: string) {
   if (!value) return "-";
@@ -68,7 +62,7 @@ export function StudentsPage() {
     search: "",
     status: "All",
     trainingStatus: "All",
-    paymentStatus: "All"
+    invoicePdfStatus: "All"
   });
 
   const filteredStudents = useMemo(() => {
@@ -90,15 +84,15 @@ export function StudentsPage() {
         filters.trainingStatus === "All" ||
         student.trainingStatus === filters.trainingStatus;
 
-      const matchesPaymentStatus =
-        filters.paymentStatus === "All" ||
-        student.paymentStatus === filters.paymentStatus;
+      const matchesInvoicePdfStatus =
+        filters.invoicePdfStatus === "All" ||
+        student.invoicePdfStatus === filters.invoicePdfStatus;
 
       return (
         matchesSearch &&
         matchesStudentStatus &&
         matchesTrainingStatus &&
-        matchesPaymentStatus
+        matchesInvoicePdfStatus
       );
     });
   }, [filters]);
@@ -108,8 +102,8 @@ export function StudentsPage() {
     const readyCertificates = students.filter(
       (student) => student.certificateStatus === "Ready"
     ).length;
-    const totalBalance = students.reduce(
-      (total, student) => total + student.invoiceBalance,
+    const invoicePdfs = students.reduce(
+      (total, student) => total + student.invoicePdfCount,
       0
     );
     const pdfCount = students.reduce(
@@ -117,7 +111,7 @@ export function StudentsPage() {
       0
     );
 
-    return { active, readyCertificates, totalBalance, pdfCount };
+    return { active, readyCertificates, invoicePdfs, pdfCount };
   }, []);
 
   return (
@@ -125,7 +119,7 @@ export function StudentsPage() {
       <PageHeader
         eyebrow="Student Information"
         title="Students"
-        description="Manage student profiles, training status, certificate readiness, payment status, invoice balances, uploaded PDFs, and QR identifiers."
+        description="Manage student profiles, training status, certificate readiness, uploaded finance invoice PDFs, student documents, and QR identifiers."
         icon={GraduationCap}
         accentClassName="border-brand-mint"
       >
@@ -152,9 +146,9 @@ export function StudentsPage() {
           tone="emerald"
         />
         <SummaryCard
-          label="Invoice Balance"
-          value={currencyFormatter.format(summary.totalBalance)}
-          icon={CalendarCheck}
+          label="Invoice PDFs"
+          value={String(summary.invoicePdfs)}
+          icon={FileText}
           tone="amber"
         />
         <SummaryCard
@@ -207,13 +201,13 @@ export function StudentsPage() {
           />
 
           <FilterSelect
-            label="Payment status"
-            value={filters.paymentStatus}
-            options={paymentStatuses}
+            label="Invoice PDF status"
+            value={filters.invoicePdfStatus}
+            options={invoicePdfStatuses}
             onChange={(value) =>
               setFilters((current) => ({
                 ...current,
-                paymentStatus: value as StudentFilters["paymentStatus"]
+                invoicePdfStatus: value as StudentFilters["invoicePdfStatus"]
               }))
             }
           />
@@ -236,7 +230,7 @@ export function StudentsPage() {
                   <th className="px-5 py-4">Training</th>
                   <th className="px-5 py-4">Dates</th>
                   <th className="px-5 py-4">Certificate</th>
-                  <th className="px-5 py-4">Payment</th>
+                  <th className="px-5 py-4">Invoice PDF</th>
                   <th className="px-5 py-4">Files</th>
                 </tr>
               </thead>
@@ -280,9 +274,10 @@ export function StudentsPage() {
                       </div>
                     </td>
                     <td className="px-5 py-5">
-                      <StatusBadge value={student.paymentStatus} />
+                      <StatusBadge value={student.invoicePdfStatus} />
                       <div className="mt-3 font-semibold">
-                        {currencyFormatter.format(student.invoiceBalance)}
+                        {student.invoicePdfCount} invoice PDF
+                        {student.invoicePdfCount === 1 ? "" : "s"}
                       </div>
                     </td>
                     <td className="px-5 py-5">
@@ -334,9 +329,9 @@ export function StudentsPage() {
                     />
                     <div>
                       <p className="text-xs font-bold uppercase text-slate-400">
-                        Payment
+                        Invoice PDF
                       </p>
-                      <StatusBadge value={student.paymentStatus} />
+                      <StatusBadge value={student.invoicePdfStatus} />
                     </div>
                     <Detail label="PDFs" value={String(student.uploadedPdfCount)} />
                   </div>
