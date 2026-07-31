@@ -24,14 +24,15 @@ export function AppLayout() {
         )}
       >
         <div className="flex h-24 items-center gap-3 border-b border-slate-200 px-5 dark:border-white/10">
-          <div className="grid h-12 w-12 place-items-center rounded-2xl bg-white shadow-glow dark:bg-slate-950">
-            <span className="text-xl font-black text-brand-blue">AGA</span>
+          <div className="flex h-14 w-32 items-center">
+            <img
+              src="/AGA-Admin/aga-logo-horizontal.png"
+              alt="Apollo Global Academy"
+              className="max-h-14 w-full object-contain"
+            />
           </div>
-          <div>
-            <p className="text-sm font-semibold uppercase tracking-[0.18em] text-brand-blue">
-              Apollo
-            </p>
-            <h1 className="text-lg font-bold leading-tight">
+          <div className="min-w-0 flex-1">
+            <h1 className="text-sm font-black leading-tight text-brand-navy dark:text-white">
               Student Information System
             </h1>
           </div>
