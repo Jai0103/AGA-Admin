@@ -12,6 +12,12 @@ const DashboardPage = lazy(() =>
   }))
 );
 
+const StudentsPage = lazy(() =>
+  import("./features/students/StudentsPage").then((module) => ({
+    default: module.StudentsPage
+  }))
+);
+
 function LazyPage({ children }: { children: ReactNode }) {
   return (
     <Suspense
@@ -28,22 +34,39 @@ function LazyPage({ children }: { children: ReactNode }) {
   );
 }
 
+const implementedRoutes = [
+  {
+    path: "dashboard",
+    element: (
+      <LazyPage>
+        <DashboardPage />
+      </LazyPage>
+    )
+  },
+  {
+    path: "students",
+    element: (
+      <LazyPage>
+        <StudentsPage />
+      </LazyPage>
+    )
+  }
+];
+
 export const router = createHashRouter([
   {
     path: "/",
     element: <AppLayout />,
     children: [
       { index: true, element: <Navigate to="/dashboard" replace /> },
-      {
-        path: "dashboard",
-        element: (
-          <LazyPage>
-            <DashboardPage />
-          </LazyPage>
-        )
-      },
+      ...implementedRoutes,
       ...navigationItems
-        .filter((item) => item.href !== "/dashboard")
+        .filter(
+          (item) =>
+            !implementedRoutes.some(
+              (route) => route.path === item.href.replace("/", "")
+            )
+        )
         .map((item) => ({
           path: item.href.replace("/", ""),
           element: <PlaceholderPage title={item.label} />
