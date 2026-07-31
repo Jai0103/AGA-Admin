@@ -7,6 +7,7 @@ import {
   Search
 } from "lucide-react";
 import { useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 
 import { EmptyState } from "../../components/ui/EmptyState";
 import { FilterSelect } from "../../components/ui/FilterSelect";
@@ -133,30 +134,10 @@ export function StudentsPage() {
       </PageHeader>
 
       <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <SummaryCard
-          label="Active Students"
-          value={String(summary.active)}
-          icon={GraduationCap}
-          tone="mint"
-        />
-        <SummaryCard
-          label="Certificates Ready"
-          value={String(summary.readyCertificates)}
-          icon={QrCode}
-          tone="emerald"
-        />
-        <SummaryCard
-          label="Invoice PDFs"
-          value={String(summary.invoicePdfs)}
-          icon={FileText}
-          tone="amber"
-        />
-        <SummaryCard
-          label="Uploaded PDFs"
-          value={String(summary.pdfCount)}
-          icon={FileText}
-          tone="blue"
-        />
+        <SummaryCard label="Active Students" value={String(summary.active)} icon={GraduationCap} tone="mint" />
+        <SummaryCard label="Certificates Ready" value={String(summary.readyCertificates)} icon={QrCode} tone="emerald" />
+        <SummaryCard label="Invoice PDFs" value={String(summary.invoicePdfs)} icon={FileText} tone="amber" />
+        <SummaryCard label="Uploaded PDFs" value={String(summary.pdfCount)} icon={FileText} tone="blue" />
       </section>
 
       <section className="rounded-3xl border border-white/70 bg-white/86 p-5 shadow-panel backdrop-blur-xl dark:border-white/10 dark:bg-white/7">
@@ -238,9 +219,12 @@ export function StudentsPage() {
                 {filteredStudents.map((student) => (
                   <tr key={student.studentId} className="align-top">
                     <td className="px-5 py-5">
-                      <div className="font-bold">
+                      <Link
+                        to={`/students/${student.studentId}`}
+                        className="font-bold text-brand-blue hover:text-brand-navy dark:hover:text-white"
+                      >
                         {student.firstName} {student.lastName}
-                      </div>
+                      </Link>
                       <div className="mt-1 text-slate-500 dark:text-slate-400">
                         {student.studentNumber}
                       </div>
@@ -298,9 +282,10 @@ export function StudentsPage() {
 
           <section className="grid gap-4 xl:hidden">
             {filteredStudents.map((student) => (
-              <article
+              <Link
                 key={student.studentId}
-                className="rounded-3xl border border-white/70 bg-white/86 p-5 shadow-panel backdrop-blur-xl dark:border-white/10 dark:bg-white/7"
+                to={`/students/${student.studentId}`}
+                className="rounded-3xl border border-white/70 bg-white/86 p-5 text-inherit shadow-panel backdrop-blur-xl transition hover:-translate-y-1 hover:shadow-glow dark:border-white/10 dark:bg-white/7"
               >
                 <div className="flex items-start justify-between gap-4">
                   <div>
@@ -336,7 +321,7 @@ export function StudentsPage() {
                     <Detail label="PDFs" value={String(student.uploadedPdfCount)} />
                   </div>
                 </div>
-              </article>
+              </Link>
             ))}
           </section>
         </>
