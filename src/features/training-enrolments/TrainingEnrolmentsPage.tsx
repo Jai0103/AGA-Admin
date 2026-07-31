@@ -5,12 +5,15 @@ import {
   FileText,
   Plus,
   ReceiptText,
-  Search,
-  SlidersHorizontal
+  Search
 } from "lucide-react";
 import { useMemo, useState } from "react";
 
+import { EmptyState } from "../../components/ui/EmptyState";
+import { FilterSelect } from "../../components/ui/FilterSelect";
+import { PageHeader } from "../../components/ui/PageHeader";
 import { StatusBadge } from "../../components/ui/StatusBadge";
+import { SummaryCard } from "../../components/ui/SummaryCard";
 import { trainingEnrolments } from "./enrolment.data";
 import type {
   AgreementStatus,
@@ -116,54 +119,46 @@ export function TrainingEnrolmentsPage() {
 
   return (
     <div className="space-y-6">
-      <section className="overflow-hidden rounded-3xl border border-white/70 bg-white/86 shadow-panel backdrop-blur-xl dark:border-white/10 dark:bg-white/7">
-        <div className="border-l-4 border-brand-sky p-6 sm:p-8">
-          <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
-            <div>
-              <span className="inline-flex items-center gap-2 rounded-xl border border-brand-sky/20 bg-brand-sky/10 px-3 py-1 text-sm font-bold text-brand-blue">
-                <BookOpenCheck size={16} />
-                Training Enrolments
-              </span>
-              <h2 className="mt-4 text-3xl font-black tracking-tight sm:text-4xl">
-                Enrolments
-              </h2>
-              <p className="mt-2 max-w-3xl text-slate-600 dark:text-slate-300">
-                Track course enrolments, training progress, TEA signatures,
-                registration form verification, invoices, and uploaded PDFs.
-              </p>
-            </div>
-
-            <button
-              type="button"
-              className="inline-flex items-center justify-center gap-2 rounded-2xl bg-brand-blue px-5 py-3 text-sm font-bold text-white shadow-glow transition hover:bg-brand-navy"
-            >
-              <Plus size={18} />
-              New Enrolment
-            </button>
-          </div>
-        </div>
-      </section>
+      <PageHeader
+        eyebrow="Training Enrolments"
+        title="Enrolments"
+        description="Track course enrolments, training progress, TEA signatures, registration form verification, invoices, and uploaded PDFs."
+        icon={BookOpenCheck}
+        accentClassName="border-brand-sky"
+      >
+        <button
+          type="button"
+          className="inline-flex items-center justify-center gap-2 rounded-2xl bg-brand-blue px-5 py-3 text-sm font-bold text-white shadow-glow transition hover:bg-brand-navy"
+        >
+          <Plus size={18} />
+          New Enrolment
+        </button>
+      </PageHeader>
 
       <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <SummaryCard
           label="In Training"
           value={String(summary.inTraining)}
           icon={BookOpenCheck}
+          tone="blue"
         />
         <SummaryCard
           label="Pending Review"
           value={String(summary.pendingReview)}
           icon={CalendarDays}
+          tone="amber"
         />
         <SummaryCard
           label="Signed TEA"
           value={String(summary.signedAgreements)}
           icon={FileSignature}
+          tone="emerald"
         />
         <SummaryCard
           label="Invoice Balance"
           value={currencyFormatter.format(summary.totalBalance)}
           icon={ReceiptText}
+          tone="rose"
         />
       </section>
 
@@ -222,141 +217,129 @@ export function TrainingEnrolmentsPage() {
         </div>
       </section>
 
-      <section className="hidden overflow-hidden rounded-3xl border border-white/70 bg-white/86 shadow-panel backdrop-blur-xl dark:border-white/10 dark:bg-white/7 xl:block">
-        <table className="w-full border-collapse text-left text-sm">
-          <thead className="border-b border-slate-200 text-xs uppercase tracking-[0.14em] text-slate-500 dark:border-white/10 dark:text-slate-400">
-            <tr>
-              <th className="px-5 py-4">Enrolment</th>
-              <th className="px-5 py-4">Student</th>
-              <th className="px-5 py-4">Schedule</th>
-              <th className="px-5 py-4">Documents</th>
-              <th className="px-5 py-4">Invoice</th>
-              <th className="px-5 py-4">Notes</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-200 dark:divide-white/10">
+      {filteredEnrolments.length === 0 ? (
+        <EmptyState
+          icon={BookOpenCheck}
+          title="No enrolments found"
+          description="Try adjusting the search or filters to find an enrolment record."
+        />
+      ) : (
+        <>
+          <section className="hidden overflow-hidden rounded-3xl border border-white/70 bg-white/86 shadow-panel backdrop-blur-xl dark:border-white/10 dark:bg-white/7 xl:block">
+            <table className="w-full border-collapse text-left text-sm">
+              <thead className="border-b border-slate-200 text-xs uppercase tracking-[0.14em] text-slate-500 dark:border-white/10 dark:text-slate-400">
+                <tr>
+                  <th className="px-5 py-4">Enrolment</th>
+                  <th className="px-5 py-4">Student</th>
+                  <th className="px-5 py-4">Schedule</th>
+                  <th className="px-5 py-4">Documents</th>
+                  <th className="px-5 py-4">Invoice</th>
+                  <th className="px-5 py-4">Notes</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-200 dark:divide-white/10">
+                {filteredEnrolments.map((enrolment) => (
+                  <tr key={enrolment.enrolmentId} className="align-top">
+                    <td className="px-5 py-5">
+                      <div className="font-bold">{enrolment.enrolmentId}</div>
+                      <div className="mt-1 text-slate-500 dark:text-slate-400">
+                        {enrolment.courseCode}
+                      </div>
+                      <div className="mt-3">
+                        <StatusBadge value={enrolment.status} />
+                      </div>
+                    </td>
+                    <td className="px-5 py-5">
+                      <div className="font-semibold">{enrolment.studentName}</div>
+                      <div className="mt-1 text-slate-500 dark:text-slate-400">
+                        {enrolment.studentNumber}
+                      </div>
+                      <div className="mt-2 text-slate-500 dark:text-slate-400">
+                        Trainer: {enrolment.trainerName}
+                      </div>
+                    </td>
+                    <td className="px-5 py-5 text-slate-600 dark:text-slate-300">
+                      <div>Start: {formatDate(enrolment.startDate)}</div>
+                      <div className="mt-1">
+                        Target: {formatDate(enrolment.targetCompletionDate)}
+                      </div>
+                      <div className="mt-1">
+                        Complete: {formatDate(enrolment.completionDate)}
+                      </div>
+                    </td>
+                    <td className="px-5 py-5">
+                      <div className="flex flex-wrap gap-2">
+                        <StatusBadge value={enrolment.agreementStatus} />
+                        <StatusBadge value={enrolment.registrationStatus} />
+                      </div>
+                      <div className="mt-3 flex items-center gap-2 text-slate-500 dark:text-slate-400">
+                        <FileText size={16} />
+                        {enrolment.uploadedPdfCount} PDFs
+                      </div>
+                    </td>
+                    <td className="px-5 py-5">
+                      <div className="font-semibold">{enrolment.invoiceNumber}</div>
+                      <div className="mt-2">
+                        <StatusBadge value={enrolment.paymentStatus} />
+                      </div>
+                      <div className="mt-3 font-semibold">
+                        {currencyFormatter.format(enrolment.invoiceBalance)}
+                      </div>
+                    </td>
+                    <td className="px-5 py-5 text-slate-600 dark:text-slate-300">
+                      {enrolment.notes}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </section>
+
+          <section className="grid gap-4 xl:hidden">
             {filteredEnrolments.map((enrolment) => (
-              <tr key={enrolment.enrolmentId} className="align-top">
-                <td className="px-5 py-5">
-                  <div className="font-bold">{enrolment.enrolmentId}</div>
-                  <div className="mt-1 text-slate-500 dark:text-slate-400">
-                    {enrolment.courseCode}
+              <article
+                key={enrolment.enrolmentId}
+                className="rounded-3xl border border-white/70 bg-white/86 p-5 shadow-panel backdrop-blur-xl dark:border-white/10 dark:bg-white/7"
+              >
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <p className="text-lg font-black">{enrolment.studentName}</p>
+                    <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+                      {enrolment.courseName}
+                    </p>
                   </div>
-                  <div className="mt-3">
-                    <StatusBadge value={enrolment.status} />
-                  </div>
-                </td>
-                <td className="px-5 py-5">
-                  <div className="font-semibold">{enrolment.studentName}</div>
-                  <div className="mt-1 text-slate-500 dark:text-slate-400">
-                    {enrolment.studentNumber}
-                  </div>
-                  <div className="mt-2 text-slate-500 dark:text-slate-400">
-                    Trainer: {enrolment.trainerName}
-                  </div>
-                </td>
-                <td className="px-5 py-5 text-slate-600 dark:text-slate-300">
-                  <div>Start: {formatDate(enrolment.startDate)}</div>
-                  <div className="mt-1">
-                    Target: {formatDate(enrolment.targetCompletionDate)}
-                  </div>
-                  <div className="mt-1">
-                    Complete: {formatDate(enrolment.completionDate)}
-                  </div>
-                </td>
-                <td className="px-5 py-5">
-                  <div className="flex flex-wrap gap-2">
+                  <StatusBadge value={enrolment.status} />
+                </div>
+
+                <div className="mt-4 grid grid-cols-2 gap-3 text-sm text-slate-600 dark:text-slate-300">
+                  <Detail label="Start" value={formatDate(enrolment.startDate)} />
+                  <Detail
+                    label="Target"
+                    value={formatDate(enrolment.targetCompletionDate)}
+                  />
+                  <div>
+                    <p className="text-xs font-bold uppercase text-slate-400">
+                      TEA
+                    </p>
                     <StatusBadge value={enrolment.agreementStatus} />
-                    <StatusBadge value={enrolment.registrationStatus} />
                   </div>
-                  <div className="mt-3 flex items-center gap-2 text-slate-500 dark:text-slate-400">
-                    <FileText size={16} />
-                    {enrolment.uploadedPdfCount} PDFs
-                  </div>
-                </td>
-                <td className="px-5 py-5">
-                  <div className="font-semibold">{enrolment.invoiceNumber}</div>
-                  <div className="mt-2">
+                  <div>
+                    <p className="text-xs font-bold uppercase text-slate-400">
+                      Payment
+                    </p>
                     <StatusBadge value={enrolment.paymentStatus} />
                   </div>
-                  <div className="mt-3 font-semibold">
-                    {currencyFormatter.format(enrolment.invoiceBalance)}
-                  </div>
-                </td>
-                <td className="px-5 py-5 text-slate-600 dark:text-slate-300">
+                </div>
+
+                <p className="mt-4 text-sm text-slate-500 dark:text-slate-400">
                   {enrolment.notes}
-                </td>
-              </tr>
+                </p>
+              </article>
             ))}
-          </tbody>
-        </table>
-      </section>
-
-      <section className="grid gap-4 xl:hidden">
-        {filteredEnrolments.map((enrolment) => (
-          <article
-            key={enrolment.enrolmentId}
-            className="rounded-3xl border border-white/70 bg-white/86 p-5 shadow-panel backdrop-blur-xl dark:border-white/10 dark:bg-white/7"
-          >
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <p className="text-lg font-black">{enrolment.studentName}</p>
-                <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-                  {enrolment.courseName}
-                </p>
-              </div>
-              <StatusBadge value={enrolment.status} />
-            </div>
-
-            <div className="mt-4 grid grid-cols-2 gap-3 text-sm text-slate-600 dark:text-slate-300">
-              <Detail label="Start" value={formatDate(enrolment.startDate)} />
-              <Detail
-                label="Target"
-                value={formatDate(enrolment.targetCompletionDate)}
-              />
-              <div>
-                <p className="text-xs font-bold uppercase text-slate-400">TEA</p>
-                <StatusBadge value={enrolment.agreementStatus} />
-              </div>
-              <div>
-                <p className="text-xs font-bold uppercase text-slate-400">
-                  Payment
-                </p>
-                <StatusBadge value={enrolment.paymentStatus} />
-              </div>
-            </div>
-
-            <p className="mt-4 text-sm text-slate-500 dark:text-slate-400">
-              {enrolment.notes}
-            </p>
-          </article>
-        ))}
-      </section>
+          </section>
+        </>
+      )}
     </div>
-  );
-}
-
-type SummaryCardProps = {
-  label: string;
-  value: string;
-  icon: typeof BookOpenCheck;
-};
-
-function SummaryCard({ label, value, icon: Icon }: SummaryCardProps) {
-  return (
-    <article className="rounded-2xl border border-white/70 bg-white/86 p-5 shadow-panel backdrop-blur-xl dark:border-white/10 dark:bg-white/7">
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <p className="text-sm font-semibold text-slate-500 dark:text-slate-400">
-            {label}
-          </p>
-          <strong className="mt-3 block text-3xl font-black">{value}</strong>
-        </div>
-        <span className="rounded-2xl bg-brand-sky/10 p-3 text-brand-blue">
-          <Icon size={20} />
-        </span>
-      </div>
-    </article>
   );
 }
 
@@ -371,33 +354,5 @@ function Detail({ label, value }: DetailProps) {
       <p className="text-xs font-bold uppercase text-slate-400">{label}</p>
       {value}
     </div>
-  );
-}
-
-type FilterSelectProps = {
-  label: string;
-  value: string;
-  options: string[];
-  onChange: (value: string) => void;
-};
-
-function FilterSelect({ label, value, options, onChange }: FilterSelectProps) {
-  return (
-    <label className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white/80 px-4 py-3 dark:border-white/10 dark:bg-white/5">
-      <SlidersHorizontal size={18} className="text-slate-400" />
-      <span className="sr-only">{label}</span>
-      <select
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-        className="min-w-40 bg-transparent text-sm font-semibold outline-none"
-        aria-label={label}
-      >
-        {options.map((option) => (
-          <option key={option} value={option}>
-            {option}
-          </option>
-        ))}
-      </select>
-    </label>
   );
 }
