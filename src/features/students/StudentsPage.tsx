@@ -4,12 +4,15 @@ import {
   GraduationCap,
   Plus,
   QrCode,
-  Search,
-  SlidersHorizontal
+  Search
 } from "lucide-react";
 import { useMemo, useState } from "react";
 
+import { EmptyState } from "../../components/ui/EmptyState";
+import { FilterSelect } from "../../components/ui/FilterSelect";
+import { PageHeader } from "../../components/ui/PageHeader";
 import { StatusBadge } from "../../components/ui/StatusBadge";
+import { SummaryCard } from "../../components/ui/SummaryCard";
 import { students } from "./student.data";
 import type {
   PaymentStatus,
@@ -119,68 +122,47 @@ export function StudentsPage() {
 
   return (
     <div className="space-y-6">
-      <section className="overflow-hidden rounded-3xl border border-white/70 bg-white/86 shadow-panel backdrop-blur-xl dark:border-white/10 dark:bg-white/7">
-        <div className="border-l-4 border-brand-mint p-6 sm:p-8">
-          <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
-            <div>
-              <span className="inline-flex items-center gap-2 rounded-xl border border-brand-mint/20 bg-brand-mint/10 px-3 py-1 text-sm font-bold text-brand-blue">
-                <GraduationCap size={16} />
-                Student Information
-              </span>
-              <h2 className="mt-4 text-3xl font-black tracking-tight sm:text-4xl">
-                Students
-              </h2>
-              <p className="mt-2 max-w-3xl text-slate-600 dark:text-slate-300">
-                Manage student profiles, training status, certificate readiness,
-                payment status, invoice balances, uploaded PDFs, and QR
-                identifiers.
-              </p>
-            </div>
-
-            <button
-              type="button"
-              className="inline-flex items-center justify-center gap-2 rounded-2xl bg-brand-blue px-5 py-3 text-sm font-bold text-white shadow-glow transition hover:bg-brand-navy"
-            >
-              <Plus size={18} />
-              Add Student
-            </button>
-          </div>
-        </div>
-      </section>
+      <PageHeader
+        eyebrow="Student Information"
+        title="Students"
+        description="Manage student profiles, training status, certificate readiness, payment status, invoice balances, uploaded PDFs, and QR identifiers."
+        icon={GraduationCap}
+        accentClassName="border-brand-mint"
+      >
+        <button
+          type="button"
+          className="inline-flex items-center justify-center gap-2 rounded-2xl bg-brand-blue px-5 py-3 text-sm font-bold text-white shadow-glow transition hover:bg-brand-navy"
+        >
+          <Plus size={18} />
+          Add Student
+        </button>
+      </PageHeader>
 
       <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <article className="rounded-2xl border border-white/70 bg-white/86 p-5 shadow-panel backdrop-blur-xl dark:border-white/10 dark:bg-white/7">
-          <p className="text-sm font-semibold text-slate-500 dark:text-slate-400">
-            Active Students
-          </p>
-          <strong className="mt-3 block text-3xl font-black">
-            {summary.active}
-          </strong>
-        </article>
-        <article className="rounded-2xl border border-white/70 bg-white/86 p-5 shadow-panel backdrop-blur-xl dark:border-white/10 dark:bg-white/7">
-          <p className="text-sm font-semibold text-slate-500 dark:text-slate-400">
-            Certificates Ready
-          </p>
-          <strong className="mt-3 block text-3xl font-black">
-            {summary.readyCertificates}
-          </strong>
-        </article>
-        <article className="rounded-2xl border border-white/70 bg-white/86 p-5 shadow-panel backdrop-blur-xl dark:border-white/10 dark:bg-white/7">
-          <p className="text-sm font-semibold text-slate-500 dark:text-slate-400">
-            Invoice Balance
-          </p>
-          <strong className="mt-3 block text-3xl font-black">
-            {currencyFormatter.format(summary.totalBalance)}
-          </strong>
-        </article>
-        <article className="rounded-2xl border border-white/70 bg-white/86 p-5 shadow-panel backdrop-blur-xl dark:border-white/10 dark:bg-white/7">
-          <p className="text-sm font-semibold text-slate-500 dark:text-slate-400">
-            Uploaded PDFs
-          </p>
-          <strong className="mt-3 block text-3xl font-black">
-            {summary.pdfCount}
-          </strong>
-        </article>
+        <SummaryCard
+          label="Active Students"
+          value={String(summary.active)}
+          icon={GraduationCap}
+          tone="mint"
+        />
+        <SummaryCard
+          label="Certificates Ready"
+          value={String(summary.readyCertificates)}
+          icon={QrCode}
+          tone="emerald"
+        />
+        <SummaryCard
+          label="Invoice Balance"
+          value={currencyFormatter.format(summary.totalBalance)}
+          icon={CalendarCheck}
+          tone="amber"
+        />
+        <SummaryCard
+          label="Uploaded PDFs"
+          value={String(summary.pdfCount)}
+          icon={FileText}
+          tone="blue"
+        />
       </section>
 
       <section className="rounded-3xl border border-white/70 bg-white/86 p-5 shadow-panel backdrop-blur-xl dark:border-white/10 dark:bg-white/7">
@@ -238,162 +220,146 @@ export function StudentsPage() {
         </div>
       </section>
 
-      <section className="hidden overflow-hidden rounded-3xl border border-white/70 bg-white/86 shadow-panel backdrop-blur-xl dark:border-white/10 dark:bg-white/7 xl:block">
-        <table className="w-full border-collapse text-left text-sm">
-          <thead className="border-b border-slate-200 text-xs uppercase tracking-[0.14em] text-slate-500 dark:border-white/10 dark:text-slate-400">
-            <tr>
-              <th className="px-5 py-4">Student</th>
-              <th className="px-5 py-4">Training</th>
-              <th className="px-5 py-4">Dates</th>
-              <th className="px-5 py-4">Certificate</th>
-              <th className="px-5 py-4">Payment</th>
-              <th className="px-5 py-4">Files</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-200 dark:divide-white/10">
+      {filteredStudents.length === 0 ? (
+        <EmptyState
+          icon={GraduationCap}
+          title="No students found"
+          description="Try adjusting the search or filters to find a student record."
+        />
+      ) : (
+        <>
+          <section className="hidden overflow-hidden rounded-3xl border border-white/70 bg-white/86 shadow-panel backdrop-blur-xl dark:border-white/10 dark:bg-white/7 xl:block">
+            <table className="w-full border-collapse text-left text-sm">
+              <thead className="border-b border-slate-200 text-xs uppercase tracking-[0.14em] text-slate-500 dark:border-white/10 dark:text-slate-400">
+                <tr>
+                  <th className="px-5 py-4">Student</th>
+                  <th className="px-5 py-4">Training</th>
+                  <th className="px-5 py-4">Dates</th>
+                  <th className="px-5 py-4">Certificate</th>
+                  <th className="px-5 py-4">Payment</th>
+                  <th className="px-5 py-4">Files</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-200 dark:divide-white/10">
+                {filteredStudents.map((student) => (
+                  <tr key={student.studentId} className="align-top">
+                    <td className="px-5 py-5">
+                      <div className="font-bold">
+                        {student.firstName} {student.lastName}
+                      </div>
+                      <div className="mt-1 text-slate-500 dark:text-slate-400">
+                        {student.studentNumber}
+                      </div>
+                      <div className="mt-1 text-slate-500 dark:text-slate-400">
+                        {student.email}
+                      </div>
+                      <div className="mt-3">
+                        <StatusBadge value={student.status} />
+                      </div>
+                    </td>
+                    <td className="px-5 py-5">
+                      <div className="font-semibold">{student.activeCourse}</div>
+                      <div className="mt-3">
+                        <StatusBadge value={student.trainingStatus} />
+                      </div>
+                    </td>
+                    <td className="px-5 py-5 text-slate-600 dark:text-slate-300">
+                      <div>Start: {formatDate(student.startDate)}</div>
+                      <div className="mt-1">
+                        Target: {formatDate(student.targetCompletionDate)}
+                      </div>
+                      <div className="mt-1">
+                        Complete: {formatDate(student.completionDate)}
+                      </div>
+                    </td>
+                    <td className="px-5 py-5">
+                      <StatusBadge value={student.certificateStatus} />
+                      <div className="mt-3 flex items-center gap-2 text-slate-500 dark:text-slate-400">
+                        <QrCode size={16} />
+                        {student.qrCodeValue}
+                      </div>
+                    </td>
+                    <td className="px-5 py-5">
+                      <StatusBadge value={student.paymentStatus} />
+                      <div className="mt-3 font-semibold">
+                        {currencyFormatter.format(student.invoiceBalance)}
+                      </div>
+                    </td>
+                    <td className="px-5 py-5">
+                      <div className="flex items-center gap-2 font-semibold">
+                        <FileText size={16} className="text-brand-blue" />
+                        {student.uploadedPdfCount} PDFs
+                      </div>
+                      <div className="mt-2 flex items-center gap-2 text-slate-500 dark:text-slate-400">
+                        <CalendarCheck size={16} />
+                        {formatDate(student.updatedAt)}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </section>
+
+          <section className="grid gap-4 xl:hidden">
             {filteredStudents.map((student) => (
-              <tr key={student.studentId} className="align-top">
-                <td className="px-5 py-5">
-                  <div className="font-bold">
-                    {student.firstName} {student.lastName}
+              <article
+                key={student.studentId}
+                className="rounded-3xl border border-white/70 bg-white/86 p-5 shadow-panel backdrop-blur-xl dark:border-white/10 dark:bg-white/7"
+              >
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <p className="text-lg font-black">
+                      {student.firstName} {student.lastName}
+                    </p>
+                    <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+                      {student.studentNumber}
+                    </p>
                   </div>
-                  <div className="mt-1 text-slate-500 dark:text-slate-400">
-                    {student.studentNumber}
+                  <StatusBadge value={student.status} />
+                </div>
+
+                <div className="mt-4 space-y-3 text-sm">
+                  <div>
+                    <p className="font-semibold">{student.activeCourse}</p>
+                    <div className="mt-2">
+                      <StatusBadge value={student.trainingStatus} />
+                    </div>
                   </div>
-                  <div className="mt-1 text-slate-500 dark:text-slate-400">
-                    {student.email}
+                  <div className="grid grid-cols-2 gap-3 text-slate-600 dark:text-slate-300">
+                    <Detail label="Start" value={formatDate(student.startDate)} />
+                    <Detail
+                      label="Target"
+                      value={formatDate(student.targetCompletionDate)}
+                    />
+                    <div>
+                      <p className="text-xs font-bold uppercase text-slate-400">
+                        Payment
+                      </p>
+                      <StatusBadge value={student.paymentStatus} />
+                    </div>
+                    <Detail label="PDFs" value={String(student.uploadedPdfCount)} />
                   </div>
-                  <div className="mt-3">
-                    <StatusBadge value={student.status} />
-                  </div>
-                </td>
-                <td className="px-5 py-5">
-                  <div className="font-semibold">{student.activeCourse}</div>
-                  <div className="mt-3">
-                    <StatusBadge value={student.trainingStatus} />
-                  </div>
-                </td>
-                <td className="px-5 py-5 text-slate-600 dark:text-slate-300">
-                  <div>Start: {formatDate(student.startDate)}</div>
-                  <div className="mt-1">
-                    Target: {formatDate(student.targetCompletionDate)}
-                  </div>
-                  <div className="mt-1">
-                    Complete: {formatDate(student.completionDate)}
-                  </div>
-                </td>
-                <td className="px-5 py-5">
-                  <StatusBadge value={student.certificateStatus} />
-                  <div className="mt-3 flex items-center gap-2 text-slate-500 dark:text-slate-400">
-                    <QrCode size={16} />
-                    {student.qrCodeValue}
-                  </div>
-                </td>
-                <td className="px-5 py-5">
-                  <StatusBadge value={student.paymentStatus} />
-                  <div className="mt-3 font-semibold">
-                    {currencyFormatter.format(student.invoiceBalance)}
-                  </div>
-                </td>
-                <td className="px-5 py-5">
-                  <div className="flex items-center gap-2 font-semibold">
-                    <FileText size={16} className="text-brand-blue" />
-                    {student.uploadedPdfCount} PDFs
-                  </div>
-                  <div className="mt-2 flex items-center gap-2 text-slate-500 dark:text-slate-400">
-                    <CalendarCheck size={16} />
-                    {formatDate(student.updatedAt)}
-                  </div>
-                </td>
-              </tr>
+                </div>
+              </article>
             ))}
-          </tbody>
-        </table>
-      </section>
-
-      <section className="grid gap-4 xl:hidden">
-        {filteredStudents.map((student) => (
-          <article
-            key={student.studentId}
-            className="rounded-3xl border border-white/70 bg-white/86 p-5 shadow-panel backdrop-blur-xl dark:border-white/10 dark:bg-white/7"
-          >
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <p className="text-lg font-black">
-                  {student.firstName} {student.lastName}
-                </p>
-                <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-                  {student.studentNumber}
-                </p>
-              </div>
-              <StatusBadge value={student.status} />
-            </div>
-
-            <div className="mt-4 space-y-3 text-sm">
-              <div>
-                <p className="font-semibold">{student.activeCourse}</p>
-                <div className="mt-2">
-                  <StatusBadge value={student.trainingStatus} />
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-3 text-slate-600 dark:text-slate-300">
-                <div>
-                  <p className="text-xs font-bold uppercase text-slate-400">
-                    Start
-                  </p>
-                  {formatDate(student.startDate)}
-                </div>
-                <div>
-                  <p className="text-xs font-bold uppercase text-slate-400">
-                    Target
-                  </p>
-                  {formatDate(student.targetCompletionDate)}
-                </div>
-                <div>
-                  <p className="text-xs font-bold uppercase text-slate-400">
-                    Payment
-                  </p>
-                  <StatusBadge value={student.paymentStatus} />
-                </div>
-                <div>
-                  <p className="text-xs font-bold uppercase text-slate-400">
-                    PDFs
-                  </p>
-                  {student.uploadedPdfCount}
-                </div>
-              </div>
-            </div>
-          </article>
-        ))}
-      </section>
+          </section>
+        </>
+      )}
     </div>
   );
 }
 
-type FilterSelectProps = {
+type DetailProps = {
   label: string;
   value: string;
-  options: string[];
-  onChange: (value: string) => void;
 };
 
-function FilterSelect({ label, value, options, onChange }: FilterSelectProps) {
+function Detail({ label, value }: DetailProps) {
   return (
-    <label className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white/80 px-4 py-3 dark:border-white/10 dark:bg-white/5">
-      <SlidersHorizontal size={18} className="text-slate-400" />
-      <span className="sr-only">{label}</span>
-      <select
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-        className="min-w-40 bg-transparent text-sm font-semibold outline-none"
-        aria-label={label}
-      >
-        {options.map((option) => (
-          <option key={option} value={option}>
-            {option}
-          </option>
-        ))}
-      </select>
-    </label>
+    <div>
+      <p className="text-xs font-bold uppercase text-slate-400">{label}</p>
+      {value}
+    </div>
   );
 }
