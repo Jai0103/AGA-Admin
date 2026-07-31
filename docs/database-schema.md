@@ -1,7 +1,15 @@
 # AGA SIS Google Sheets Database Schema
 
-This document defines the first planned Google Sheets database structure for
-Apollo Global Academy's Student Information System.
+This document defines the planned Google Sheets database structure for Apollo
+Global Academy's Student Information System.
+
+Important invoice rule:
+
+```txt
+Invoices are not created, calculated, paid, or processed inside AGA Admin.
+Invoices come from the finance system and are uploaded into AGA Admin as PDFs.
+AGA Admin stores invoice PDF metadata and links only.
+```
 
 Each section below represents one sheet tab inside the main AGA SIS spreadsheet.
 
@@ -30,6 +38,16 @@ address
 emergencyContactName
 emergencyContactPhone
 status
+trainingStatus
+startDate
+targetCompletionDate
+completionDate
+activeCourse
+certificateStatus
+invoicePdfStatus
+invoicePdfCount
+uploadedPdfCount
+qrCodeValue
 createdAt
 updatedAt
 createdBy
@@ -38,7 +56,7 @@ updatedBy
 
 Purpose:
 
-Stores the main student profile.
+Stores the main student profile and student-level document status.
 
 ## 2. TrainingEnrolments
 
@@ -63,8 +81,10 @@ trainerId
 teaStatus
 registrationFormStatus
 certificateStatus
-paymentStatus
-invoiceId
+invoiceNumber
+invoicePdfStatus
+invoicePdfCount
+uploadedPdfCount
 notes
 createdAt
 updatedAt
@@ -96,6 +116,7 @@ moduleName
 score
 result
 trainerId
+durationMinutes
 remarks
 pdfFileId
 pdfUrl
@@ -175,41 +196,37 @@ Purpose:
 
 Tracks generated certificates and QR validation data.
 
-## 6. Invoices
+## 6. InvoiceFiles
 
 Sheet name:
 
 ```txt
-Invoices
+InvoiceFiles
 ```
 
 Columns:
 
 ```txt
-invoiceId
+invoiceFileId
 studentId
 enrolmentId
 invoiceNumber
 invoiceDate
-dueDate
-currency
-subtotal
-tax
-total
-amountPaid
-balance
-paymentStatus
-pdfFileId
-pdfUrl
-createdAt
-updatedAt
-createdBy
-updatedBy
+financeSystemReference
+fileName
+mimeType
+driveFileId
+driveUrl
+folderId
+uploadedAt
+uploadedBy
+notes
 ```
 
 Purpose:
 
-Tracks billing and payment status.
+Stores invoice PDFs exported from the finance system. This sheet does not store
+payment processing, balances, accounting entries, or invoice creation logic.
 
 ## 7. Files
 
