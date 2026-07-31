@@ -14,76 +14,167 @@ type CertificatePreviewProps = {
 
 export function CertificatePreview({ certificate }: CertificatePreviewProps) {
   return (
-    <div className="overflow-auto rounded-2xl border border-slate-200 bg-slate-100 p-4 shadow-panel dark:border-white/10 dark:bg-slate-950">
-      <div className="mx-auto w-[1100px] max-w-full">
-        <div className="relative aspect-[1900/1350] overflow-hidden bg-white text-black">
+    <div className="rounded-2xl border border-slate-200 bg-slate-100 p-3 shadow-panel dark:border-white/10 dark:bg-slate-950">
+      <div className="mx-auto w-full max-w-[1180px]">
+        <div className="relative aspect-[1900/1350] overflow-hidden rounded-lg bg-white text-black">
           <img
             src="/AGA-Admin/certificates/uapl-theory-course-template.png"
             alt="UAPL Theory Course certificate template"
             className="absolute inset-0 h-full w-full object-cover"
           />
 
-          <p className="absolute right-[10.5%] top-[5.7%] text-[1.35vw] font-black">
-            Reference no. {certificate.referenceNumber}
-          </p>
+          <svg
+            className="absolute inset-0 h-full w-full"
+            viewBox="0 0 1900 1350"
+            role="img"
+            aria-label={`Certificate preview for ${certificate.studentName}`}
+          >
+            <text
+              x="1315"
+              y="96"
+              fontFamily="Arial, Helvetica, sans-serif"
+              fontSize="30"
+              fontWeight="800"
+              fill="#000000"
+            >
+              Reference no. {certificate.referenceNumber}
+            </text>
 
-          <div className="absolute left-0 right-0 top-[22.2%] text-center">
-            <p className="text-[2.55vw] font-black tracking-[0.04em]">
-              APOLLO DRONES ACADEMY <sup className="text-[1.25vw]">TM</sup>
-            </p>
-          </div>
+            <text
+              x="950"
+              y="345"
+              textAnchor="middle"
+              fontFamily="Arial, Helvetica, sans-serif"
+              fontSize="54"
+              fontWeight="900"
+              letterSpacing="3"
+              fill="#000000"
+            >
+              APOLLO DRONES ACADEMY
+              <tspan baselineShift="super" fontSize="26">
+                TM
+              </tspan>
+            </text>
 
-          <div className="absolute left-0 right-0 top-[31.7%] text-center">
-            <h3 className="font-serif text-[4.15vw] tracking-[0.13em]">
+            <text
+              x="950"
+              y="490"
+              textAnchor="middle"
+              fontFamily="Georgia, 'Times New Roman', serif"
+              fontSize="82"
+              fontWeight="400"
+              letterSpacing="15"
+              fill="#000000"
+            >
               CERTIFICATE OF COMPLETION
-            </h3>
-          </div>
+            </text>
 
-          <div className="absolute left-0 right-0 top-[43.2%] text-center">
-            <p className="text-[1.9vw] font-black tracking-[0.28em]">
+            <text
+              x="950"
+              y="615"
+              textAnchor="middle"
+              fontFamily="Arial, Helvetica, sans-serif"
+              fontSize="34"
+              fontWeight="900"
+              letterSpacing="13"
+              fill="#000000"
+            >
               THIS CERTIFICATE IS CERTIFIED TO
-            </p>
-          </div>
+            </text>
 
-          <div className="absolute left-[20%] right-[20%] top-[49.4%] text-center">
-            <p className="truncate font-serif text-[4.25vw] text-[#8a6519]">
+            <text
+              x="950"
+              y="720"
+              textAnchor="middle"
+              fontFamily="Georgia, 'Times New Roman', serif"
+              fontSize="82"
+              fontWeight="400"
+              fill="#8a6519"
+            >
               {certificate.studentName}
-            </p>
-          </div>
+            </text>
 
-          <div className="absolute left-[18%] right-[18%] top-[59.1%] text-center">
-            <p className="text-[1.55vw] leading-snug">
-              Has successfully completed the course{" "}
-              <strong>{certificate.courseName}</strong> provided by
-            </p>
-            <p className="mt-[0.4%] text-[1.75vw]">
+            <text
+              x="950"
+              y="815"
+              textAnchor="middle"
+              fontFamily="Arial, Helvetica, sans-serif"
+              fontSize="31"
+              fill="#000000"
+            >
+              Has successfully completed the course
+              <tspan fontWeight="900"> {certificate.courseName}</tspan>
+              <tspan> provided by</tspan>
+            </text>
+
+            <text
+              x="950"
+              y="865"
+              textAnchor="middle"
+              fontFamily="Arial, Helvetica, sans-serif"
+              fontSize="34"
+              fill="#000000"
+            >
               APOLLO GLOBAL ACADEMY PTE LTD
-            </p>
-          </div>
+            </text>
 
-          <div className="absolute bottom-[14.9%] left-[31%] w-[25.5%] text-center">
-            <div className="mx-auto h-[3.5vw] w-[50%] font-serif text-[2.8vw] italic leading-[3.5vw]">
+            <text
+              x="750"
+              y="1045"
+              textAnchor="middle"
+              fontFamily="Brush Script MT, Segoe Script, cursive"
+              fontSize="70"
+              fontStyle="italic"
+              fill="#000000"
+            >
               Alan
-            </div>
-          </div>
+            </text>
 
-          <div className="absolute bottom-[8.7%] left-[29.2%] w-[28.5%] text-center">
-            <div className="border-t border-black pt-[0.8vw]">
-              <p className="text-[1.55vw]">{certificate.signatoryTitle}</p>
-              <p className="text-[1.55vw] font-black">
-                {certificate.signatoryName}
-              </p>
-            </div>
-          </div>
+            <line x1="520" y1="1075" x2="1000" y2="1075" stroke="#000000" strokeWidth="1.5" />
+            <text
+              x="760"
+              y="1120"
+              textAnchor="middle"
+              fontFamily="Arial, Helvetica, sans-serif"
+              fontSize="30"
+              fill="#000000"
+            >
+              {certificate.signatoryTitle}
+            </text>
+            <text
+              x="760"
+              y="1162"
+              textAnchor="middle"
+              fontFamily="Arial, Helvetica, sans-serif"
+              fontSize="31"
+              fontWeight="900"
+              fill="#000000"
+            >
+              {certificate.signatoryName}
+            </text>
 
-          <div className="absolute bottom-[8.7%] right-[10.2%] w-[28.5%] text-center">
-            <p className="h-[4.2vw] text-[1.75vw] leading-[4.2vw]">
+            <text
+              x="1418"
+              y="1045"
+              textAnchor="middle"
+              fontFamily="Arial, Helvetica, sans-serif"
+              fontSize="32"
+              fill="#000000"
+            >
               {formatDate(certificate.issueDate)}
-            </p>
-            <div className="border-t border-black pt-[0.8vw] text-[1.55vw]">
+            </text>
+            <line x1="1165" y1="1075" x2="1660" y2="1075" stroke="#000000" strokeWidth="1.5" />
+            <text
+              x="1418"
+              y="1140"
+              textAnchor="middle"
+              fontFamily="Arial, Helvetica, sans-serif"
+              fontSize="30"
+              fill="#000000"
+            >
               Date
-            </div>
-          </div>
+            </text>
+          </svg>
         </div>
       </div>
     </div>
