@@ -30,11 +30,11 @@ export function CertificatePreview({ certificate }: CertificatePreviewProps) {
             aria-label={`Certificate preview for ${certificate.studentName}`}
           >
             <text
-              x="1315"
-              y="96"
-              fontFamily="Arial, Helvetica, sans-serif"
+              x="1328"
+              y="91"
+              fontFamily="Inter, Arial, Helvetica, sans-serif"
               fontSize="30"
-              fontWeight="800"
+              fontWeight="900"
               fill="#000000"
             >
               Reference no. {certificate.referenceNumber}
@@ -42,28 +42,28 @@ export function CertificatePreview({ certificate }: CertificatePreviewProps) {
 
             <text
               x="950"
-              y="345"
+              y="338"
               textAnchor="middle"
-              fontFamily="Arial, Helvetica, sans-serif"
-              fontSize="54"
+              fontFamily="Inter, Arial, Helvetica, sans-serif"
+              fontSize="55"
               fontWeight="900"
-              letterSpacing="3"
+              letterSpacing="4"
               fill="#000000"
             >
               APOLLO DRONES ACADEMY
-              <tspan baselineShift="super" fontSize="26">
+              <tspan baselineShift="super" fontSize="24">
                 TM
               </tspan>
             </text>
 
             <text
               x="950"
-              y="490"
+              y="485"
               textAnchor="middle"
-              fontFamily="Georgia, 'Times New Roman', serif"
-              fontSize="82"
+              fontFamily="'Libre Bodoni', 'Bodoni 72', Didot, Georgia, serif"
+              fontSize="78"
               fontWeight="400"
-              letterSpacing="15"
+              letterSpacing="17"
               fill="#000000"
             >
               CERTIFICATE OF COMPLETION
@@ -71,12 +71,12 @@ export function CertificatePreview({ certificate }: CertificatePreviewProps) {
 
             <text
               x="950"
-              y="615"
+              y="610"
               textAnchor="middle"
-              fontFamily="Arial, Helvetica, sans-serif"
+              fontFamily="Inter, Arial, Helvetica, sans-serif"
               fontSize="34"
               fontWeight="900"
-              letterSpacing="13"
+              letterSpacing="18"
               fill="#000000"
             >
               THIS CERTIFICATE IS CERTIFIED TO
@@ -84,11 +84,11 @@ export function CertificatePreview({ certificate }: CertificatePreviewProps) {
 
             <text
               x="950"
-              y="720"
+              y="710"
               textAnchor="middle"
-              fontFamily="Georgia, 'Times New Roman', serif"
-              fontSize="82"
-              fontWeight="400"
+              fontFamily="'Libre Bodoni', 'Bodoni 72', Didot, Georgia, serif"
+              fontSize="76"
+              fontWeight="500"
               fill="#8a6519"
             >
               {certificate.studentName}
@@ -96,10 +96,11 @@ export function CertificatePreview({ certificate }: CertificatePreviewProps) {
 
             <text
               x="950"
-              y="815"
+              y="812"
               textAnchor="middle"
-              fontFamily="Arial, Helvetica, sans-serif"
-              fontSize="31"
+              fontFamily="Inter, Arial, Helvetica, sans-serif"
+              fontSize="30"
+              fontWeight="400"
               fill="#000000"
             >
               Has successfully completed the course
@@ -109,44 +110,46 @@ export function CertificatePreview({ certificate }: CertificatePreviewProps) {
 
             <text
               x="950"
-              y="865"
+              y="860"
               textAnchor="middle"
-              fontFamily="Arial, Helvetica, sans-serif"
-              fontSize="34"
+              fontFamily="Inter, Arial, Helvetica, sans-serif"
+              fontSize="33"
+              fontWeight="500"
               fill="#000000"
             >
               APOLLO GLOBAL ACADEMY PTE LTD
             </text>
 
             <text
-              x="750"
-              y="1045"
+              x="748"
+              y="1038"
               textAnchor="middle"
-              fontFamily="Brush Script MT, Segoe Script, cursive"
-              fontSize="70"
-              fontStyle="italic"
+              fontFamily="'Great Vibes', 'Segoe Script', 'Brush Script MT', cursive"
+              fontSize="78"
+              fontWeight="400"
               fill="#000000"
             >
               Alan
             </text>
 
-            <line x1="520" y1="1075" x2="1000" y2="1075" stroke="#000000" strokeWidth="1.5" />
+            <line x1="515" y1="1076" x2="1000" y2="1076" stroke="#000000" strokeWidth="1.5" />
             <text
-              x="760"
-              y="1120"
+              x="758"
+              y="1122"
               textAnchor="middle"
-              fontFamily="Arial, Helvetica, sans-serif"
-              fontSize="30"
+              fontFamily="Inter, Arial, Helvetica, sans-serif"
+              fontSize="29"
+              fontWeight="400"
               fill="#000000"
             >
               {certificate.signatoryTitle}
             </text>
             <text
-              x="760"
+              x="758"
               y="1162"
               textAnchor="middle"
-              fontFamily="Arial, Helvetica, sans-serif"
-              fontSize="31"
+              fontFamily="Inter, Arial, Helvetica, sans-serif"
+              fontSize="30"
               fontWeight="900"
               fill="#000000"
             >
@@ -154,22 +157,24 @@ export function CertificatePreview({ certificate }: CertificatePreviewProps) {
             </text>
 
             <text
-              x="1418"
-              y="1045"
+              x="1410"
+              y="1038"
               textAnchor="middle"
-              fontFamily="Arial, Helvetica, sans-serif"
-              fontSize="32"
+              fontFamily="Inter, Arial, Helvetica, sans-serif"
+              fontSize="31"
+              fontWeight="400"
               fill="#000000"
             >
               {formatDate(certificate.issueDate)}
             </text>
-            <line x1="1165" y1="1075" x2="1660" y2="1075" stroke="#000000" strokeWidth="1.5" />
+            <line x1="1160" y1="1076" x2="1660" y2="1076" stroke="#000000" strokeWidth="1.5" />
             <text
-              x="1418"
+              x="1410"
               y="1140"
               textAnchor="middle"
-              fontFamily="Arial, Helvetica, sans-serif"
+              fontFamily="Inter, Arial, Helvetica, sans-serif"
               fontSize="30"
+              fontWeight="400"
               fill="#000000"
             >
               Date
