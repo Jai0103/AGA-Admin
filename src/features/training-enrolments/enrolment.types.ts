@@ -18,11 +18,11 @@ export type RegistrationStatus =
   | "Verified"
   | "Needs Correction";
 
-export type EnrolmentPaymentStatus =
-  | "Unpaid"
-  | "Deposit Paid"
-  | "Paid"
-  | "Overdue";
+export type EnrolmentInvoicePdfStatus =
+  | "No Invoice PDF"
+  | "Uploaded"
+  | "Missing"
+  | "Needs Replacement";
 
 export type TrainingEnrolment = {
   enrolmentId: string;
@@ -38,9 +38,9 @@ export type TrainingEnrolment = {
   trainerName: string;
   agreementStatus: AgreementStatus;
   registrationStatus: RegistrationStatus;
-  paymentStatus: EnrolmentPaymentStatus;
   invoiceNumber: string;
-  invoiceBalance: number;
+  invoicePdfStatus: EnrolmentInvoicePdfStatus;
+  invoicePdfCount: number;
   uploadedPdfCount: number;
   notes: string;
   updatedAt: string;
@@ -50,5 +50,5 @@ export type EnrolmentFilters = {
   search: string;
   status: "All" | EnrolmentStatus;
   agreementStatus: "All" | AgreementStatus;
-  paymentStatus: "All" | EnrolmentPaymentStatus;
+  invoicePdfStatus: "All" | EnrolmentInvoicePdfStatus;
 };
