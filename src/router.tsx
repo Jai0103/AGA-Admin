@@ -38,6 +38,12 @@ const CertificatesPage = lazy(() =>
   }))
 );
 
+const FileManagerPage = lazy(() =>
+  import("./features/file-manager/FileManagerPage").then((module) => ({
+    default: module.FileManagerPage
+  }))
+);
+
 function LazyPage({ children }: { children: ReactNode }) {
   return (
     <Suspense
@@ -92,6 +98,14 @@ const implementedRoutes = [
     element: (
       <LazyPage>
         <CertificatesPage />
+      </LazyPage>
+    )
+  },
+  {
+    path: "file-manager",
+    element: (
+      <LazyPage>
+        <FileManagerPage />
       </LazyPage>
     )
   }
