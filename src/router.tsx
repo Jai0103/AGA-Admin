@@ -18,6 +18,14 @@ const StudentsPage = lazy(() =>
   }))
 );
 
+const TrainingEnrolmentsPage = lazy(() =>
+  import("./features/training-enrolments/TrainingEnrolmentsPage").then(
+    (module) => ({
+      default: module.TrainingEnrolmentsPage
+    })
+  )
+);
+
 function LazyPage({ children }: { children: ReactNode }) {
   return (
     <Suspense
@@ -48,6 +56,14 @@ const implementedRoutes = [
     element: (
       <LazyPage>
         <StudentsPage />
+      </LazyPage>
+    )
+  },
+  {
+    path: "training-enrolments",
+    element: (
+      <LazyPage>
+        <TrainingEnrolmentsPage />
       </LazyPage>
     )
   }
