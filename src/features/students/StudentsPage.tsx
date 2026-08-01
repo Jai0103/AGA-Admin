@@ -361,7 +361,12 @@ export function StudentsPage() {
                           label="View"
                           icon={Eye}
                         />
-                        <ActionButton label="Edit" icon={Pencil} disabled />
+                        <ActionLink
+                          to={`/students/${student.studentId}/edit`}
+                          label="Edit"
+                          icon={Pencil}
+                          tone="neutral"
+                        />
                         <ActionButton label="Delete" icon={Trash2} danger disabled />
                       </div>
                     </td>
@@ -421,7 +426,12 @@ export function StudentsPage() {
                     label="View"
                     icon={Eye}
                   />
-                  <ActionButton label="Edit" icon={Pencil} disabled />
+                  <ActionLink
+                    to={`/students/${student.studentId}/edit`}
+                    label="Edit"
+                    icon={Pencil}
+                    tone="neutral"
+                  />
                   <ActionButton label="Delete" icon={Trash2} danger disabled />
                 </div>
               </article>
@@ -453,14 +463,25 @@ type ActionLinkProps = {
   to: string;
   label: string;
   icon: ActionIcon;
+  tone?: "primary" | "neutral";
 };
 
-function ActionLink({ to, label, icon: Icon }: ActionLinkProps) {
+function ActionLink({
+  to,
+  label,
+  icon: Icon,
+  tone = "primary"
+}: ActionLinkProps) {
+  const toneClassName =
+    tone === "primary"
+      ? "border-brand-blue/20 bg-white/90 text-brand-blue hover:border-brand-blue hover:bg-brand-blue hover:text-white focus:ring-brand-sky/20 dark:border-white/10 dark:bg-white/7 dark:text-brand-sky"
+      : "border-slate-200 bg-white/90 text-slate-600 hover:border-brand-blue hover:bg-brand-blue hover:text-white focus:ring-brand-sky/20 dark:border-white/10 dark:bg-white/7 dark:text-slate-200";
+
   return (
     <Link
       to={to}
       aria-label={label}
-      className="group relative inline-grid size-10 place-items-center rounded-2xl border border-brand-blue/20 bg-white/90 text-brand-blue shadow-sm transition hover:-translate-y-0.5 hover:border-brand-blue hover:bg-brand-blue hover:text-white hover:shadow-glow focus:outline-none focus:ring-4 focus:ring-brand-sky/20 dark:border-white/10 dark:bg-white/7 dark:text-brand-sky"
+      className={`group relative inline-grid size-10 place-items-center rounded-2xl border shadow-sm transition hover:-translate-y-0.5 hover:shadow-glow focus:outline-none focus:ring-4 ${toneClassName}`}
     >
       <Icon size={17} strokeWidth={2.4} />
       <Tooltip label={label} />
@@ -492,9 +513,7 @@ function ActionButton({
         }
       }}
       className={`group relative inline-grid size-10 place-items-center rounded-2xl border shadow-sm transition hover:-translate-y-0.5 focus:outline-none focus:ring-4 ${
-        disabled
-          ? "cursor-not-allowed opacity-55"
-          : "cursor-pointer"
+        disabled ? "cursor-not-allowed opacity-55" : "cursor-pointer"
       } ${
         danger
           ? "border-rose-200 bg-rose-50 text-rose-700 hover:border-rose-500 hover:bg-rose-600 hover:text-white focus:ring-rose-200 dark:border-rose-400/20 dark:bg-rose-400/10 dark:text-rose-200"
@@ -504,9 +523,7 @@ function ActionButton({
       <Icon size={17} strokeWidth={2.4} />
       <Tooltip
         label={
-          disabled
-            ? `${label} will be enabled after backend setup`
-            : label
+          disabled ? `${label} will be enabled after backend setup` : label
         }
       />
     </button>
