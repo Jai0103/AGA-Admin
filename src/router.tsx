@@ -24,6 +24,12 @@ const NewStudentPage = lazy(() =>
   }))
 );
 
+const EditStudentPage = lazy(() =>
+  import("./features/students/EditStudentPage").then((module) => ({
+    default: module.EditStudentPage
+  }))
+);
+
 const StudentDetailPage = lazy(() =>
   import("./features/students/StudentDetailPage").then((module) => ({
     default: module.StudentDetailPage
@@ -94,6 +100,14 @@ const implementedRoutes = [
     element: (
       <LazyPage>
         <NewStudentPage />
+      </LazyPage>
+    )
+  },
+  {
+    path: "students/:studentId/edit",
+    element: (
+      <LazyPage>
+        <EditStudentPage />
       </LazyPage>
     )
   },
