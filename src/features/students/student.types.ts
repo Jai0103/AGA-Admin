@@ -25,41 +25,51 @@ export type InvoicePdfStatus =
   | "Missing"
   | "Needs Replacement";
 
+export type IdType = "NRIC" | "Passport" | "FIN" | "Other" | "NRIC/Passport";
+
 export type Student = {
   studentId: string;
   studentNumber: string;
-  firstName: string;
-  lastName: string;
+  nameAsPerId: string;
   preferredName?: string;
-  email: string;
-  phone: string;
-  nationality: string;
+  idType: IdType;
+  idLast4: string;
   dateOfBirth: string;
-  idNumber?: string;
-  address?: string;
+  nationality: string;
+  contactNumber: string;
+  email: string;
+  residentialAddress: string;
+  isCompanySponsored: boolean | string;
   companyName?: string;
   companyUen?: string;
   companyContactPerson?: string;
   companyEmail?: string;
-  companyContactFax?: string;
+  companyContactNumber?: string;
   companyMailingAddress?: string;
-  emergencyContactName?: string;
-  emergencyContactPhone?: string;
-  status: StudentStatus;
+  studentStatus: StudentStatus;
   trainingStatus: TrainingStatus;
+  activeCourse: string;
   startDate: string;
   targetCompletionDate: string;
   completionDate?: string;
-  activeCourse: string;
   certificateStatus: CertificateStatus;
   invoicePdfStatus: InvoicePdfStatus;
   invoicePdfCount: number;
-  uploadedPdfCount: number;
+  uploadedFileCount: number;
   qrCodeValue: string;
   createdAt?: string;
   updatedAt: string;
   createdBy?: string;
   updatedBy?: string;
+
+  firstName?: string;
+  lastName?: string;
+  phone?: string;
+  idNumber?: string;
+  address?: string;
+  status?: StudentStatus;
+  companyContactFax?: string;
+  uploadedPdfCount?: number;
 };
 
 export type StudentFilters = {
