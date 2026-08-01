@@ -1,4 +1,5 @@
 import {
+  AlertTriangle,
   CalendarCheck,
   Eye,
   FileText,
@@ -9,17 +10,19 @@ import {
   QrCode,
   Search,
   ServerCrash,
-  Trash2
+  Trash2,
+  X
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
+import { toast } from "sonner";
 
 import { EmptyState } from "../../components/ui/EmptyState";
 import { FilterSelect } from "../../components/ui/FilterSelect";
 import { PageHeader } from "../../components/ui/PageHeader";
 import { StatusBadge } from "../../components/ui/StatusBadge";
 import { SummaryCard } from "../../components/ui/SummaryCard";
-import { listStudentsFromApi } from "./student.service";
+import { archiveStudentInApi, listStudentsFromApi } from "./student.service";
 import type {
   InvoicePdfStatus,
   Student,
@@ -102,6 +105,8 @@ function uploadedFileCount(student: Student) {
 export function StudentsPage() {
   const [students, setStudents] = useState<Student[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isArchiving, setIsArchiving] = useState(false);
+  const [studentToArchive, setStudentToArchive] = useState<Student | null>(null);
   const [errorMessage, setErrorMessage] = useState("");
   const [filters, setFilters] = useState<StudentFilters>({
     search: "",
@@ -137,6 +142,36 @@ export function StudentsPage() {
       mounted = false;
     };
   }, []);
+
+  async function handleArchiveStudent() {
+    if (!studentToArchive) {
+      return;
+    }
+
+    setIsArchiving(true);
+
+    try {
+      const response = await archiveStudentInApi({
+        studentId: studentToArchive.studentId
+      });
+
+      setStudents((current) =>
+        current.map((student) =>
+          student.studentId === response.student.studentId
+            ? response.student
+            : student
+        )
+      );
+      setStudentToArchive(null);
+      toast.success("Student archived");
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Could not archive student.";
+      toast.error(message);
+    } finally {
+      setIsArchiving(false);
+    }
+  }
 
   const filteredStudents = useMemo(() => {
     const search = filters.search.trim().toLowerCase();
@@ -392,7 +427,13 @@ export function StudentsPage() {
                           icon={Pencil}
                           tone="neutral"
                         />
-                        <ActionButton label="Delete" icon={Trash2} danger disabled />
+                        <ActionButton
+                          label="Archive"
+                          icon={Trash2}
+                          danger
+                          disabled={studentStatus(student) === "Withdrawn"}
+                          onClick={() => setStudentToArchive(student)}
+                        />
                       </div>
                     </td>
                   </tr>
@@ -460,13 +501,28 @@ export function StudentsPage() {
                     icon={Pencil}
                     tone="neutral"
                   />
-                  <ActionButton label="Delete" icon={Trash2} danger disabled />
+                  <ActionButton
+                    label="Archive"
+                    icon={Trash2}
+                    danger
+                    disabled={studentStatus(student) === "Withdrawn"}
+                    onClick={() => setStudentToArchive(student)}
+                  />
                 </div>
               </article>
             ))}
           </section>
         </>
       )}
+
+      {studentToArchive ? (
+        <ArchiveStudentDialog
+          student={studentToArchive}
+          isArchiving={isArchiving}
+          onCancel={() => setStudentToArchive(null)}
+          onConfirm={handleArchiveStudent}
+        />
+      ) : null}
     </div>
   );
 }
@@ -522,27 +578,24 @@ type ActionButtonProps = {
   icon: ActionIcon;
   danger?: boolean;
   disabled?: boolean;
+  onClick?: () => void;
 };
 
 function ActionButton({
   label,
   icon: Icon,
   danger,
-  disabled
+  disabled,
+  onClick
 }: ActionButtonProps) {
   return (
     <button
       type="button"
       aria-label={label}
       aria-disabled={disabled}
-      onClick={(event) => {
-        if (disabled) {
-          event.preventDefault();
-        }
-      }}
-      className={`group relative inline-grid size-10 place-items-center rounded-2xl border shadow-sm transition hover:-translate-y-0.5 focus:outline-none focus:ring-4 ${
-        disabled ? "cursor-not-allowed opacity-55" : "cursor-pointer"
-      } ${
+      disabled={disabled}
+      onClick={onClick}
+      className={`group relative inline-grid size-10 place-items-center rounded-2xl border shadow-sm transition hover:-translate-y-0.5 focus:outline-none focus:ring-4 disabled:cursor-not-allowed disabled:opacity-45 ${
         danger
           ? "border-rose-200 bg-rose-50 text-rose-700 hover:border-rose-500 hover:bg-rose-600 hover:text-white focus:ring-rose-200 dark:border-rose-400/20 dark:bg-rose-400/10 dark:text-rose-200"
           : "border-slate-200 bg-white/90 text-slate-600 hover:border-brand-blue hover:bg-brand-blue hover:text-white focus:ring-brand-sky/20 dark:border-white/10 dark:bg-white/7 dark:text-slate-200"
@@ -550,9 +603,7 @@ function ActionButton({
     >
       <Icon size={17} strokeWidth={2.4} />
       <Tooltip
-        label={
-          disabled ? `${label} will be enabled after backend setup` : label
-        }
+        label={disabled ? "Already archived" : label}
       />
     </button>
   );
@@ -564,5 +615,84 @@ function Tooltip({ label }: { label: string }) {
       {label}
       <span className="absolute left-1/2 top-full size-2 -translate-x-1/2 -translate-y-1 rotate-45 bg-brand-navy dark:bg-white" />
     </span>
+  );
+}
+
+type ArchiveStudentDialogProps = {
+  student: Student;
+  isArchiving: boolean;
+  onCancel: () => void;
+  onConfirm: () => void;
+};
+
+function ArchiveStudentDialog({
+  student,
+  isArchiving,
+  onCancel,
+  onConfirm
+}: ArchiveStudentDialogProps) {
+  return (
+    <div className="fixed inset-0 z-50 grid place-items-center bg-brand-navy/45 px-4 backdrop-blur-md">
+      <section className="w-full max-w-lg rounded-3xl border border-white/70 bg-white p-6 shadow-2xl dark:border-white/10 dark:bg-slate-950">
+        <div className="flex items-start justify-between gap-4">
+          <div className="flex items-start gap-4">
+            <div className="grid size-12 shrink-0 place-items-center rounded-2xl bg-rose-50 text-rose-600 dark:bg-rose-400/10 dark:text-rose-200">
+              <AlertTriangle size={24} />
+            </div>
+            <div>
+              <p className="text-xs font-black uppercase tracking-[0.18em] text-rose-600 dark:text-rose-200">
+                Archive Student
+              </p>
+              <h2 className="mt-2 text-2xl font-black tracking-tight">
+                Move this student to Withdrawn?
+              </h2>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={onCancel}
+            disabled={isArchiving}
+            className="rounded-2xl p-2 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700 disabled:cursor-not-allowed disabled:opacity-50 dark:hover:bg-white/10 dark:hover:text-white"
+            aria-label="Close archive dialog"
+          >
+            <X size={20} />
+          </button>
+        </div>
+
+        <div className="mt-5 rounded-2xl border border-slate-200 bg-slate-50 p-4 dark:border-white/10 dark:bg-white/5">
+          <p className="font-black">{studentName(student)}</p>
+          <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+            {student.studentNumber}
+          </p>
+        </div>
+
+        <p className="mt-5 text-sm leading-6 text-slate-600 dark:text-slate-300">
+          This is a soft delete. The student row, files, invoices,
+          certificates, and audit trail will remain. The system will set student
+          status to <strong>Withdrawn</strong> and training status to{" "}
+          <strong>Suspended</strong>.
+        </p>
+
+        <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+          <button
+            type="button"
+            onClick={onCancel}
+            disabled={isArchiving}
+            className="inline-flex items-center justify-center rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-black text-slate-600 shadow-sm transition hover:text-brand-blue disabled:cursor-not-allowed disabled:opacity-50 dark:border-white/10 dark:bg-white/5 dark:text-slate-200"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={onConfirm}
+            disabled={isArchiving}
+            className="inline-flex items-center justify-center gap-2 rounded-2xl bg-rose-600 px-5 py-3 text-sm font-black text-white shadow-lg shadow-rose-600/20 transition hover:bg-rose-700 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {isArchiving ? <Loader2 size={18} className="animate-spin" /> : null}
+            {isArchiving ? "Archiving..." : "Archive Student"}
+          </button>
+        </div>
+      </section>
+    </div>
   );
 }
