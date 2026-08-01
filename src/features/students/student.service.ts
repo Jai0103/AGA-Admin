@@ -1,6 +1,7 @@
 import { apiGet, apiPost } from "../../services/api/client";
 import type {
   CertificateStatus,
+  IdType,
   InvoicePdfStatus,
   Student,
   StudentStatus,
@@ -15,36 +16,52 @@ export type GetStudentResponse = {
   student: Student;
 };
 
-export type CreateStudentPayload = {
-  firstName: string;
-  lastName: string;
+export type StudentMutationPayload = {
+  nameAsPerId?: string;
   preferredName?: string;
-  email?: string;
-  phone?: string;
-  nationality?: string;
+  idType?: IdType;
+  idLast4?: string;
   dateOfBirth?: string;
-  idNumber?: string;
-  address?: string;
+  nationality?: string;
+  contactNumber?: string;
+  email?: string;
+  residentialAddress?: string;
+  isCompanySponsored?: boolean;
   companyName?: string;
   companyUen?: string;
   companyContactPerson?: string;
   companyEmail?: string;
-  companyContactFax?: string;
+  companyContactNumber?: string;
   companyMailingAddress?: string;
-  status?: StudentStatus;
+  studentStatus?: StudentStatus;
   trainingStatus?: TrainingStatus;
+  activeCourse?: string;
   startDate?: string;
   targetCompletionDate?: string;
   completionDate?: string;
-  activeCourse?: string;
   certificateStatus?: CertificateStatus;
   invoicePdfStatus?: InvoicePdfStatus;
   invoicePdfCount?: number;
-  uploadedPdfCount?: number;
+  uploadedFileCount?: number;
   qrCodeValue?: string;
+
+  firstName?: string;
+  lastName?: string;
+  phone?: string;
+  idNumber?: string;
+  address?: string;
+  status?: StudentStatus;
+  companyContactFax?: string;
+  uploadedPdfCount?: number;
 };
 
-export type UpdateStudentPayload = CreateStudentPayload & {
+export type CreateStudentPayload = StudentMutationPayload & {
+  nameAsPerId?: string;
+  firstName?: string;
+  lastName?: string;
+};
+
+export type UpdateStudentPayload = StudentMutationPayload & {
   studentId: string;
   studentNumber?: string;
   createdAt?: string;
