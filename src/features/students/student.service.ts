@@ -25,8 +25,12 @@ export type CreateStudentPayload = {
   dateOfBirth?: string;
   idNumber?: string;
   address?: string;
-  emergencyContactName?: string;
-  emergencyContactPhone?: string;
+  companyName?: string;
+  companyUen?: string;
+  companyContactPerson?: string;
+  companyEmail?: string;
+  companyContactFax?: string;
+  companyMailingAddress?: string;
   status?: StudentStatus;
   trainingStatus?: TrainingStatus;
   startDate?: string;
