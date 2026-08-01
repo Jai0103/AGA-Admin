@@ -13,6 +13,10 @@ import { Link, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 
 import { PageHeader } from "../../components/ui/PageHeader";
+import {
+  readFileAsBase64,
+  uploadStudentFileToApi
+} from "./student-file.service";
 import { createStudentInApi } from "./student.service";
 import type {
   CertificateStatus,
@@ -46,6 +50,39 @@ const trainingStatuses: TrainingStatus[] = [
   "Expired",
   "Suspended"
 ];
+
+const allowedUploadExtensions = [".pdf", ".doc", ".docx", ".jpg", ".jpeg", ".png"];
+const maxUploadSizeBytes = 8 * 1024 * 1024;
+
+function mimeTypeForFile(file: File) {
+  if (file.type) {
+    return file.type;
+  }
+
+  const lowerName = file.name.toLowerCase();
+
+  if (lowerName.endsWith(".pdf")) {
+    return "application/pdf";
+  }
+
+  if (lowerName.endsWith(".doc")) {
+    return "application/msword";
+  }
+
+  if (lowerName.endsWith(".docx")) {
+    return "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+  }
+
+  if (lowerName.endsWith(".jpg") || lowerName.endsWith(".jpeg")) {
+    return "image/jpeg";
+  }
+
+  if (lowerName.endsWith(".png")) {
+    return "image/png";
+  }
+
+  return "application/octet-stream";
+}
 
 type FormState = {
   nameAsPerId: string;
@@ -141,13 +178,37 @@ export function NewStudentPage() {
       return;
     }
 
-    const allowedExtensions = [".pdf", ".doc", ".docx", ".jpg", ".jpeg", ".png"];
-    const incomingFiles = Array.from(files).filter((file) => {
+    const validFiles: File[] = [];
+    const rejectedFiles: string[] = [];
+
+    Array.from(files).forEach((file) => {
       const lowerName = file.name.toLowerCase();
-      return allowedExtensions.some((extension) => lowerName.endsWith(extension));
+      const isAllowedType = allowedUploadExtensions.some((extension) =>
+        lowerName.endsWith(extension)
+      );
+
+      if (!isAllowedType) {
+        rejectedFiles.push(`${file.name} is not an allowed file type.`);
+        return;
+      }
+
+      if (file.size > maxUploadSizeBytes) {
+        rejectedFiles.push(`${file.name} is larger than 8 MB.`);
+        return;
+      }
+
+      validFiles.push(file);
     });
 
-    setSelectedFiles((current) => [...current, ...incomingFiles]);
+    if (rejectedFiles.length > 0) {
+      toast.error(rejectedFiles[0]);
+    }
+
+    if (validFiles.length === 0) {
+      return;
+    }
+
+    setSelectedFiles((current) => [...current, ...validFiles]);
   }
 
   function removeFile(fileName: string) {
@@ -173,7 +234,7 @@ export function NewStudentPage() {
     setErrorMessage("");
 
     try {
-      await createStudentInApi({
+      const response = await createStudentInApi({
         nameAsPerId: form.nameAsPerId.trim(),
         preferredName: form.nameAsPerId.trim(),
         idType: form.idType,
@@ -206,6 +267,29 @@ export function NewStudentPage() {
         invoicePdfCount: 0,
         uploadedFileCount: 0
       });
+
+      if (selectedFiles.length > 0) {
+        toast.loading("Uploading registration files...", {
+          id: "registration-file-upload"
+        });
+
+        for (const file of selectedFiles) {
+          const base64Data = await readFileAsBase64(file);
+
+          await uploadStudentFileToApi({
+            studentId: response.student.studentId,
+            module: "Registration Form",
+            fileName: file.name,
+            mimeType: mimeTypeForFile(file),
+            base64Data,
+            notes: "Uploaded during student registration."
+          });
+        }
+
+        toast.success("Registration files uploaded", {
+          id: "registration-file-upload"
+        });
+      }
 
       toast.success("Student created");
       navigate("/students");
@@ -456,8 +540,9 @@ export function NewStudentPage() {
           <section className="rounded-3xl border border-slate-200 bg-white/75 p-5 dark:border-white/10 dark:bg-white/5">
             <h3 className="text-xl font-black">Registration Files</h3>
             <p className="mt-2 text-sm leading-6 text-slate-500 dark:text-slate-300">
-              Accepted files: MS Word, PDF, JPG, and PNG. Google Drive upload
-              will be connected in the next backend step.
+              Accepted files: MS Word, PDF, JPG, and PNG. Files are uploaded to
+              the student's Google Drive folder after the student record is
+              created.
             </p>
 
             <label className="mt-5 flex cursor-pointer flex-col items-center justify-center rounded-3xl border border-dashed border-brand-blue/35 bg-brand-sky/10 px-5 py-8 text-center transition hover:border-brand-blue hover:bg-brand-sky/15 dark:border-brand-sky/30 dark:bg-white/5">
@@ -486,6 +571,9 @@ export function NewStudentPage() {
                   >
                     <span className="min-w-0 truncate font-bold text-slate-700 dark:text-slate-200">
                       {file.name}
+                    </span>
+                    <span className="shrink-0 rounded-full bg-brand-sky/15 px-3 py-1 text-xs font-black text-brand-blue">
+                      Registration Form
                     </span>
                     <button
                       type="button"
