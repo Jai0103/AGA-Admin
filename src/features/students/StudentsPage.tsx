@@ -1,12 +1,15 @@
 import {
   CalendarCheck,
+  Eye,
   FileText,
   GraduationCap,
   Loader2,
+  Pencil,
   Plus,
   QrCode,
   Search,
-  ServerCrash
+  ServerCrash,
+  Trash2
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
@@ -52,18 +55,34 @@ const invoicePdfStatuses: Array<"All" | InvoicePdfStatus> = [
 ];
 
 function formatDate(value?: string) {
-  if (!value) return "-";
+  const rawValue = String(value ?? "").trim();
+
+  if (!rawValue) {
+    return "-";
+  }
+
+  const parsedDate = new Date(rawValue);
+
+  if (Number.isNaN(parsedDate.getTime())) {
+    return rawValue;
+  }
 
   return new Intl.DateTimeFormat("en-SG", {
     day: "2-digit",
     month: "short",
     year: "numeric"
-  }).format(new Date(value));
+  }).format(parsedDate);
 }
 
 function toNumber(value: unknown) {
   const numberValue = Number(value);
   return Number.isFinite(numberValue) ? numberValue : 0;
+}
+
+function fullName(student: Student) {
+  return [student.firstName, student.lastName]
+    .filter((part) => part && part !== "-")
+    .join(" ");
 }
 
 export function StudentsPage() {
@@ -109,10 +128,10 @@ export function StudentsPage() {
     const search = filters.search.trim().toLowerCase();
 
     return students.filter((student) => {
-      const fullName = `${student.firstName} ${student.lastName}`.toLowerCase();
+      const name = fullName(student).toLowerCase();
       const matchesSearch =
         !search ||
-        fullName.includes(search) ||
+        name.includes(search) ||
         student.studentNumber.toLowerCase().includes(search) ||
         student.email.toLowerCase().includes(search) ||
         student.activeCourse.toLowerCase().includes(search);
@@ -268,6 +287,7 @@ export function StudentsPage() {
                   <th className="px-5 py-4">Certificate</th>
                   <th className="px-5 py-4">Invoice PDF</th>
                   <th className="px-5 py-4">Files</th>
+                  <th className="px-5 py-4 text-right">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-200 dark:divide-white/10">
@@ -278,13 +298,13 @@ export function StudentsPage() {
                         to={`/students/${student.studentId}`}
                         className="font-bold text-brand-blue hover:text-brand-navy dark:hover:text-white"
                       >
-                        {student.firstName} {student.lastName}
+                        {fullName(student)}
                       </Link>
                       <div className="mt-1 text-slate-500 dark:text-slate-400">
                         {student.studentNumber}
                       </div>
                       <div className="mt-1 text-slate-500 dark:text-slate-400">
-                        {student.email || "No email"}
+                        {student.email || student.companyEmail || "No email"}
                       </div>
                       <div className="mt-3">
                         <StatusBadge value={student.status} />
@@ -311,7 +331,7 @@ export function StudentsPage() {
                       <StatusBadge value={student.certificateStatus} />
                       <div className="mt-3 flex items-center gap-2 text-slate-500 dark:text-slate-400">
                         <QrCode size={16} />
-                        {student.qrCodeValue}
+                        {student.qrCodeValue || student.studentId}
                       </div>
                     </td>
                     <td className="px-5 py-5">
@@ -331,6 +351,17 @@ export function StudentsPage() {
                         {formatDate(student.updatedAt)}
                       </div>
                     </td>
+                    <td className="px-5 py-5">
+                      <div className="flex justify-end gap-2">
+                        <ActionLink
+                          to={`/students/${student.studentId}`}
+                          label="View"
+                          icon={Eye}
+                        />
+                        <ActionButton label="Edit" icon={Pencil} disabled />
+                        <ActionButton label="Delete" icon={Trash2} danger disabled />
+                      </div>
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -339,16 +370,13 @@ export function StudentsPage() {
 
           <section className="grid gap-4 xl:hidden">
             {filteredStudents.map((student) => (
-              <Link
+              <article
                 key={student.studentId}
-                to={`/students/${student.studentId}`}
-                className="rounded-3xl border border-white/70 bg-white/86 p-5 text-inherit shadow-panel backdrop-blur-xl transition hover:-translate-y-1 hover:shadow-glow dark:border-white/10 dark:bg-white/7"
+                className="rounded-3xl border border-white/70 bg-white/86 p-5 text-inherit shadow-panel backdrop-blur-xl dark:border-white/10 dark:bg-white/7"
               >
                 <div className="flex items-start justify-between gap-4">
                   <div>
-                    <p className="text-lg font-black">
-                      {student.firstName} {student.lastName}
-                    </p>
+                    <p className="text-lg font-black">{fullName(student)}</p>
                     <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
                       {student.studentNumber}
                     </p>
@@ -383,7 +411,17 @@ export function StudentsPage() {
                     />
                   </div>
                 </div>
-              </Link>
+
+                <div className="mt-5 flex flex-wrap gap-2 border-t border-slate-200 pt-4 dark:border-white/10">
+                  <ActionLink
+                    to={`/students/${student.studentId}`}
+                    label="View"
+                    icon={Eye}
+                  />
+                  <ActionButton label="Edit" icon={Pencil} disabled />
+                  <ActionButton label="Delete" icon={Trash2} danger disabled />
+                </div>
+              </article>
             ))}
           </section>
         </>
@@ -403,5 +441,55 @@ function Detail({ label, value }: DetailProps) {
       <p className="text-xs font-bold uppercase text-slate-400">{label}</p>
       {value}
     </div>
+  );
+}
+
+type ActionIcon = typeof Eye;
+
+type ActionLinkProps = {
+  to: string;
+  label: string;
+  icon: ActionIcon;
+};
+
+function ActionLink({ to, label, icon: Icon }: ActionLinkProps) {
+  return (
+    <Link
+      to={to}
+      className="inline-flex items-center justify-center gap-2 rounded-2xl border border-brand-blue/20 bg-brand-sky/10 px-3 py-2 text-xs font-black text-brand-blue transition hover:border-brand-blue hover:bg-brand-blue hover:text-white"
+    >
+      <Icon size={15} />
+      {label}
+    </Link>
+  );
+}
+
+type ActionButtonProps = {
+  label: string;
+  icon: ActionIcon;
+  danger?: boolean;
+  disabled?: boolean;
+};
+
+function ActionButton({
+  label,
+  icon: Icon,
+  danger,
+  disabled
+}: ActionButtonProps) {
+  return (
+    <button
+      type="button"
+      disabled={disabled}
+      title={disabled ? `${label} will be enabled after backend endpoint setup` : label}
+      className={`inline-flex items-center justify-center gap-2 rounded-2xl border px-3 py-2 text-xs font-black transition disabled:cursor-not-allowed disabled:opacity-45 ${
+        danger
+          ? "border-rose-200 bg-rose-50 text-rose-700 hover:border-rose-500 hover:bg-rose-600 hover:text-white dark:border-rose-400/20 dark:bg-rose-400/10 dark:text-rose-200"
+          : "border-slate-200 bg-white text-slate-600 hover:border-brand-blue hover:text-brand-blue dark:border-white/10 dark:bg-white/5 dark:text-slate-200"
+      }`}
+    >
+      <Icon size={15} />
+      {label}
+    </button>
   );
 }
