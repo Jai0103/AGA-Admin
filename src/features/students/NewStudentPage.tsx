@@ -54,6 +54,23 @@ const trainingStatuses: TrainingStatus[] = [
 const allowedUploadExtensions = [".pdf", ".doc", ".docx", ".jpg", ".jpeg", ".png"];
 const maxUploadSizeBytes = 8 * 1024 * 1024;
 
+const registrationFileModules = [
+  "Registration Form",
+  "NRIC/Passport",
+  "Company Letter",
+  "Invoice PDF",
+  "Training Agreement",
+  "Other"
+] as const;
+
+type RegistrationFileModule = (typeof registrationFileModules)[number];
+
+type SelectedRegistrationFile = {
+  id: string;
+  file: File;
+  module: RegistrationFileModule;
+};
+
 function mimeTypeForFile(file: File) {
   if (file.type) {
     return file.type;
@@ -135,7 +152,7 @@ const initialForm: FormState = {
 export function NewStudentPage() {
   const navigate = useNavigate();
   const [form, setForm] = useState<FormState>(initialForm);
-  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const [selectedFiles, setSelectedFiles] = useState<SelectedRegistrationFile[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
 
@@ -178,7 +195,7 @@ export function NewStudentPage() {
       return;
     }
 
-    const validFiles: File[] = [];
+    const validFiles: SelectedRegistrationFile[] = [];
     const rejectedFiles: string[] = [];
 
     Array.from(files).forEach((file) => {
@@ -197,7 +214,11 @@ export function NewStudentPage() {
         return;
       }
 
-      validFiles.push(file);
+      validFiles.push({
+        id: `${file.name}-${file.lastModified}-${file.size}`,
+        file,
+        module: "Registration Form"
+      });
     });
 
     if (rejectedFiles.length > 0) {
@@ -211,9 +232,22 @@ export function NewStudentPage() {
     setSelectedFiles((current) => [...current, ...validFiles]);
   }
 
-  function removeFile(fileName: string) {
+  function removeFile(fileId: string) {
     setSelectedFiles((current) =>
-      current.filter((file) => file.name !== fileName)
+      current.filter((item) => item.id !== fileId)
+    );
+  }
+
+  function updateFileModule(fileId: string, module: RegistrationFileModule) {
+    setSelectedFiles((current) =>
+      current.map((item) =>
+        item.id === fileId
+          ? {
+              ...item,
+              module
+            }
+          : item
+      )
     );
   }
 
@@ -273,16 +307,16 @@ export function NewStudentPage() {
           id: "registration-file-upload"
         });
 
-        for (const file of selectedFiles) {
-          const base64Data = await readFileAsBase64(file);
+        for (const item of selectedFiles) {
+          const base64Data = await readFileAsBase64(item.file);
 
           await uploadStudentFileToApi({
             studentId: response.student.studentId,
-            module: "Registration Form",
-            fileName: file.name,
-            mimeType: mimeTypeForFile(file),
+            module: item.module,
+            fileName: item.file.name,
+            mimeType: mimeTypeForFile(item.file),
             base64Data,
-            notes: "Uploaded during student registration."
+            notes: `Uploaded during student registration as ${item.module}.`
           });
         }
 
@@ -540,9 +574,8 @@ export function NewStudentPage() {
           <section className="rounded-3xl border border-slate-200 bg-white/75 p-5 dark:border-white/10 dark:bg-white/5">
             <h3 className="text-xl font-black">Registration Files</h3>
             <p className="mt-2 text-sm leading-6 text-slate-500 dark:text-slate-300">
-              Accepted files: MS Word, PDF, JPG, and PNG. Files are uploaded to
-              the student's Google Drive folder after the student record is
-              created.
+              Accepted files: MS Word, PDF, JPG, and PNG. Choose a document
+              type for each file before saving the student.
             </p>
 
             <label className="mt-5 flex cursor-pointer flex-col items-center justify-center rounded-3xl border border-dashed border-brand-blue/35 bg-brand-sky/10 px-5 py-8 text-center transition hover:border-brand-blue hover:bg-brand-sky/15 dark:border-brand-sky/30 dark:bg-white/5">
@@ -564,22 +597,35 @@ export function NewStudentPage() {
 
             {selectedFiles.length ? (
               <div className="mt-4 space-y-2">
-                {selectedFiles.map((file) => (
+                {selectedFiles.map((item) => (
                   <div
-                    key={file.name}
-                    className="flex items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm dark:border-white/10 dark:bg-white/5"
+                    key={item.id}
+                    className="grid gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm dark:border-white/10 dark:bg-white/5 sm:grid-cols-[1fr_190px_auto] sm:items-center"
                   >
                     <span className="min-w-0 truncate font-bold text-slate-700 dark:text-slate-200">
-                      {file.name}
+                      {item.file.name}
                     </span>
-                    <span className="shrink-0 rounded-full bg-brand-sky/15 px-3 py-1 text-xs font-black text-brand-blue">
-                      Registration Form
-                    </span>
+                    <select
+                      value={item.module}
+                      onChange={(event) =>
+                        updateFileModule(
+                          item.id,
+                          event.target.value as RegistrationFileModule
+                        )
+                      }
+                      className="rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-black text-slate-700 outline-none transition focus:border-brand-blue focus:ring-4 focus:ring-brand-sky/10 dark:border-white/10 dark:bg-white/5 dark:text-slate-100"
+                    >
+                      {registrationFileModules.map((module) => (
+                        <option key={module} value={module}>
+                          {module}
+                        </option>
+                      ))}
+                    </select>
                     <button
                       type="button"
-                      onClick={() => removeFile(file.name)}
-                      className="rounded-xl p-2 text-slate-400 transition hover:bg-rose-50 hover:text-rose-600 dark:hover:bg-rose-400/10 dark:hover:text-rose-200"
-                      aria-label={`Remove ${file.name}`}
+                      onClick={() => removeFile(item.id)}
+                      className="justify-self-end rounded-xl p-2 text-slate-400 transition hover:bg-rose-50 hover:text-rose-600 dark:hover:bg-rose-400/10 dark:hover:text-rose-200"
+                      aria-label={`Remove ${item.file.name}`}
                     >
                       <X size={16} />
                     </button>
