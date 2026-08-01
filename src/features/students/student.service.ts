@@ -68,11 +68,19 @@ export type UpdateStudentPayload = StudentMutationPayload & {
   createdBy?: string;
 };
 
+export type ArchiveStudentPayload = {
+  studentId: string;
+};
+
 export type CreateStudentResponse = {
   student: Student;
 };
 
 export type UpdateStudentResponse = {
+  student: Student;
+};
+
+export type ArchiveStudentResponse = {
   student: Student;
 };
 
@@ -90,4 +98,8 @@ export function createStudentInApi(payload: CreateStudentPayload) {
 
 export function updateStudentInApi(payload: UpdateStudentPayload) {
   return apiPost<UpdateStudentResponse>("updateStudent", payload);
+}
+
+export function archiveStudentInApi(payload: ArchiveStudentPayload) {
+  return apiPost<ArchiveStudentResponse>("archiveStudent", payload);
 }
