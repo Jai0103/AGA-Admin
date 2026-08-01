@@ -6,12 +6,14 @@ import {
   FileText,
   GraduationCap,
   History,
+  Loader2,
   Mail,
   Phone,
   QrCode,
-  ReceiptText
+  ReceiptText,
+  ServerCrash
 } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 
 import { StatusBadge } from "../../components/ui/StatusBadge";
@@ -19,7 +21,8 @@ import { certificateRecords } from "../certificates/certificate.data";
 import { managedFiles } from "../file-manager/file.data";
 import { trainingEnrolments } from "../training-enrolments/enrolment.data";
 import { trainingRecords } from "../training-records/training-record.data";
-import { students } from "./student.data";
+import { getStudentFromApi } from "./student.service";
+import type { Student } from "./student.types";
 
 const tabs = [
   { id: "profile", label: "Profile", icon: GraduationCap },
@@ -45,9 +48,46 @@ function formatDate(value?: string) {
 
 export function StudentDetailPage() {
   const { studentId } = useParams();
+  const [student, setStudent] = useState<Student | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [errorMessage, setErrorMessage] = useState("");
   const [activeTab, setActiveTab] = useState<TabId>("profile");
 
-  const student = students.find((item) => item.studentId === studentId);
+  useEffect(() => {
+    let mounted = true;
+
+    if (!studentId) {
+      setStudent(null);
+      setErrorMessage("Missing student ID.");
+      setIsLoading(false);
+      return;
+    }
+
+    setIsLoading(true);
+    setErrorMessage("");
+
+    getStudentFromApi(studentId)
+      .then((response) => {
+        if (mounted) {
+          setStudent(response.student);
+        }
+      })
+      .catch((error: Error) => {
+        if (mounted) {
+          setStudent(null);
+          setErrorMessage(error.message);
+        }
+      })
+      .finally(() => {
+        if (mounted) {
+          setIsLoading(false);
+        }
+      });
+
+    return () => {
+      mounted = false;
+    };
+  }, [studentId]);
 
   const related = useMemo(() => {
     if (!student) {
@@ -77,7 +117,19 @@ export function StudentDetailPage() {
     };
   }, [student]);
 
-  if (!student) {
+  if (isLoading) {
+    return (
+      <section className="rounded-3xl border border-white/70 bg-white/86 p-8 text-center shadow-panel backdrop-blur-xl dark:border-white/10 dark:bg-white/7">
+        <Loader2 className="mx-auto animate-spin text-brand-blue" size={32} />
+        <h2 className="mt-4 text-2xl font-black">Loading student profile</h2>
+        <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
+          Fetching the live student record from Google Sheets.
+        </p>
+      </section>
+    );
+  }
+
+  if (errorMessage || !student) {
     return (
       <section className="rounded-3xl border border-white/70 bg-white/86 p-8 shadow-panel backdrop-blur-xl dark:border-white/10 dark:bg-white/7">
         <Link
@@ -87,9 +139,10 @@ export function StudentDetailPage() {
           <ArrowLeft size={16} />
           Back to students
         </Link>
+        <ServerCrash className="mt-6 text-rose-600 dark:text-rose-200" size={32} />
         <h2 className="mt-4 text-3xl font-black">Student not found</h2>
         <p className="mt-2 text-slate-500 dark:text-slate-400">
-          The selected student record does not exist in the current data set.
+          {errorMessage || "The selected student record does not exist."}
         </p>
       </section>
     );
@@ -115,17 +168,17 @@ export function StudentDetailPage() {
               <StatusBadge value={student.status} />
             </div>
             <p className="mt-2 text-slate-500 dark:text-slate-400">
-              {student.studentNumber} · {student.activeCourse}
+              {student.studentNumber} · {student.activeCourse || "No course assigned"}
             </p>
 
             <div className="mt-5 flex flex-wrap gap-3 text-sm text-slate-600 dark:text-slate-300">
               <span className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white/70 px-3 py-2 dark:border-white/10 dark:bg-white/5">
                 <Mail size={16} />
-                {student.email}
+                {student.email || "No email"}
               </span>
               <span className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white/70 px-3 py-2 dark:border-white/10 dark:bg-white/5">
                 <Phone size={16} />
-                {student.phone}
+                {student.phone || "No phone"}
               </span>
               <span className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white/70 px-3 py-2 dark:border-white/10 dark:bg-white/5">
                 <QrCode size={16} />
@@ -168,17 +221,17 @@ export function StudentDetailPage() {
             title="Personal Profile"
             rows={[
               ["Full name", `${student.firstName} ${student.lastName}`],
-              ["Preferred name", student.preferredName ?? "-"],
-              ["Nationality", student.nationality],
+              ["Preferred name", student.preferredName || "-"],
+              ["Nationality", student.nationality || "-"],
               ["Date of birth", formatDate(student.dateOfBirth)],
-              ["Email", student.email],
-              ["Phone", student.phone]
+              ["Email", student.email || "-"],
+              ["Phone", student.phone || "-"]
             ]}
           />
           <InfoCard
             title="Training Overview"
             rows={[
-              ["Current course", student.activeCourse],
+              ["Current course", student.activeCourse || "-"],
               ["Training status", student.trainingStatus],
               ["Start date", formatDate(student.startDate)],
               ["Target completion", formatDate(student.targetCompletionDate)],
@@ -191,7 +244,7 @@ export function StudentDetailPage() {
 
       {activeTab === "enrolments" && (
         <RecordList
-          emptyText="No enrolments yet."
+          emptyText="No live enrolments are connected yet. This tab will use the TrainingEnrolments API next."
           items={related.enrolments.map((enrolment) => ({
             title: enrolment.courseName,
             subtitle: `${enrolment.enrolmentId} · Trainer: ${enrolment.trainerName}`,
@@ -205,7 +258,7 @@ export function StudentDetailPage() {
 
       {activeTab === "records" && (
         <RecordList
-          emptyText="No training records yet."
+          emptyText="No live training records are connected yet. This tab will use the TrainingRecords API next."
           items={related.records.map((record) => ({
             title: record.moduleName,
             subtitle: `${record.recordType} · ${record.trainerName}`,
@@ -216,12 +269,15 @@ export function StudentDetailPage() {
       )}
 
       {activeTab === "files" && (
-        <FileList emptyText="No files yet." files={related.files} />
+        <FileList
+          emptyText="No live files are connected yet. This tab will use the Files API next."
+          files={related.files}
+        />
       )}
 
       {activeTab === "certificates" && (
         <RecordList
-          emptyText="No certificates yet."
+          emptyText="No live certificates are connected yet. This tab will use the Certificates API next."
           items={related.certificates.map((certificate) => ({
             title: certificate.courseName,
             subtitle: `Reference ${certificate.referenceNumber}`,
@@ -232,16 +288,18 @@ export function StudentDetailPage() {
       )}
 
       {activeTab === "invoices" && (
-        <FileList emptyText="No invoice PDFs yet." files={related.invoiceFiles} />
+        <FileList
+          emptyText="No live invoice PDFs are connected yet. This tab will use the InvoiceFiles API next."
+          files={related.invoiceFiles}
+        />
       )}
 
       {activeTab === "audit" && (
         <section className="rounded-3xl border border-white/70 bg-white/86 p-6 shadow-panel backdrop-blur-xl dark:border-white/10 dark:bg-white/7">
           <h3 className="text-xl font-black">Audit History</h3>
           <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
-            Audit history will show create, update, upload, certificate
-            generation, and document replacement actions after the backend is
-            connected.
+            Audit history is already being written in Apps Script. A live audit
+            endpoint will connect this tab to Google Sheets next.
           </p>
         </section>
       )}
