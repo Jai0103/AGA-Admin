@@ -15,6 +15,7 @@ import { PageHeader } from "../../components/ui/PageHeader";
 import { getStudentFromApi, updateStudentInApi } from "./student.service";
 import type {
   CertificateStatus,
+  IdType,
   Student,
   StudentStatus,
   TrainingStatus
@@ -27,6 +28,8 @@ const courseOptions = [
   "UAPL Theory Refresher",
   "Custom Course"
 ];
+
+const idTypeOptions: IdType[] = ["NRIC", "Passport", "FIN", "Other"];
 
 const studentStatuses: StudentStatus[] = [
   "Active",
@@ -53,20 +56,22 @@ const certificateStatuses: CertificateStatus[] = [
 ];
 
 type FormState = {
-  fullName: string;
-  idNumber: string;
+  nameAsPerId: string;
+  idType: IdType;
+  idLast4: string;
   dateOfBirth: string;
   nationality: string;
-  phone: string;
-  address: string;
+  contactNumber: string;
+  email: string;
+  residentialAddress: string;
   isCompanySponsored: boolean;
   companyName: string;
   companyUen: string;
   companyContactPerson: string;
   companyEmail: string;
-  companyContactFax: string;
+  companyContactNumber: string;
   companyMailingAddress: string;
-  status: StudentStatus;
+  studentStatus: StudentStatus;
   trainingStatus: TrainingStatus;
   activeCourse: string;
   startDate: string;
@@ -76,20 +81,22 @@ type FormState = {
 };
 
 const initialForm: FormState = {
-  fullName: "",
-  idNumber: "",
+  nameAsPerId: "",
+  idType: "NRIC",
+  idLast4: "",
   dateOfBirth: "",
   nationality: "",
-  phone: "",
-  address: "",
+  contactNumber: "",
+  email: "",
+  residentialAddress: "",
   isCompanySponsored: false,
   companyName: "",
   companyUen: "",
   companyContactPerson: "",
   companyEmail: "",
-  companyContactFax: "",
+  companyContactNumber: "",
   companyMailingAddress: "",
-  status: "Active",
+  studentStatus: "Active",
   trainingStatus: "Not Started",
   activeCourse: "UATO Theory Course",
   startDate: "",
@@ -118,47 +125,52 @@ function toDateInputValue(value?: string) {
   return parsedDate.toISOString().slice(0, 10);
 }
 
-function fullName(student: Student) {
-  const fromParts = [student.firstName, student.lastName]
+function getStudentName(student: Student) {
+  const legacyName = [student.firstName, student.lastName]
     .filter((part) => part && part !== "-")
     .join(" ");
 
-  return student.preferredName || fromParts;
+  return student.nameAsPerId || student.preferredName || legacyName;
 }
 
-function splitFullName(name: string) {
-  const parts = name.trim().split(/\s+/);
-  const firstName = parts[0] || "";
-  const lastName = parts.length > 1 ? parts.slice(1).join(" ") : "-";
+function toBoolean(value: boolean | string | undefined) {
+  if (typeof value === "boolean") {
+    return value;
+  }
 
-  return { firstName, lastName };
+  return String(value ?? "").toLowerCase() === "true";
 }
 
 function studentToForm(student: Student): FormState {
-  const isCompanySponsored = Boolean(
-    student.companyName ||
+  const companySponsored = Boolean(
+    toBoolean(student.isCompanySponsored) ||
+      student.companyName ||
       student.companyUen ||
       student.companyContactPerson ||
       student.companyEmail ||
+      student.companyContactNumber ||
       student.companyContactFax ||
       student.companyMailingAddress
   );
 
   return {
-    fullName: fullName(student),
-    idNumber: student.idNumber || "",
+    nameAsPerId: getStudentName(student),
+    idType: student.idType || "NRIC",
+    idLast4: student.idLast4 || student.idNumber || "",
     dateOfBirth: toDateInputValue(student.dateOfBirth),
     nationality: student.nationality || "",
-    phone: String(student.phone || ""),
-    address: student.address || "",
-    isCompanySponsored,
+    contactNumber: String(student.contactNumber || student.phone || ""),
+    email: student.email || "",
+    residentialAddress: student.residentialAddress || student.address || "",
+    isCompanySponsored: companySponsored,
     companyName: student.companyName || "",
     companyUen: student.companyUen || "",
     companyContactPerson: student.companyContactPerson || "",
-    companyEmail: student.companyEmail || student.email || "",
-    companyContactFax: student.companyContactFax || "",
+    companyEmail: student.companyEmail || "",
+    companyContactNumber:
+      student.companyContactNumber || student.companyContactFax || "",
     companyMailingAddress: student.companyMailingAddress || "",
-    status: student.status,
+    studentStatus: student.studentStatus || student.status,
     trainingStatus: student.trainingStatus,
     activeCourse: student.activeCourse || "UATO Theory Course",
     startDate: toDateInputValue(student.startDate),
@@ -232,7 +244,9 @@ export function EditStudentPage() {
         ? current.companyContactPerson
         : "",
       companyEmail: isCompanySponsored ? current.companyEmail : "",
-      companyContactFax: isCompanySponsored ? current.companyContactFax : "",
+      companyContactNumber: isCompanySponsored
+        ? current.companyContactNumber
+        : "",
       companyMailingAddress: isCompanySponsored
         ? current.companyMailingAddress
         : ""
@@ -247,7 +261,7 @@ export function EditStudentPage() {
       return;
     }
 
-    if (!form.fullName.trim()) {
+    if (!form.nameAsPerId.trim()) {
       setErrorMessage("Name as per NRIC/Passport is required.");
       return;
     }
@@ -257,8 +271,6 @@ export function EditStudentPage() {
       return;
     }
 
-    const { firstName, lastName } = splitFullName(form.fullName);
-
     setIsSubmitting(true);
     setErrorMessage("");
 
@@ -266,28 +278,29 @@ export function EditStudentPage() {
       const response = await updateStudentInApi({
         studentId: student.studentId,
         studentNumber: student.studentNumber,
-        firstName,
-        lastName,
-        preferredName: form.fullName.trim(),
-        idNumber: form.idNumber.trim(),
+        nameAsPerId: form.nameAsPerId.trim(),
+        preferredName: form.nameAsPerId.trim(),
+        idType: form.idType,
+        idLast4: form.idLast4.trim(),
         dateOfBirth: form.dateOfBirth,
         nationality: form.nationality.trim(),
-        phone: form.phone.trim(),
-        address: form.address.trim(),
+        contactNumber: form.contactNumber.trim(),
+        email: form.email.trim(),
+        residentialAddress: form.residentialAddress.trim(),
+        isCompanySponsored: form.isCompanySponsored,
         companyName: form.isCompanySponsored ? form.companyName.trim() : "",
         companyUen: form.isCompanySponsored ? form.companyUen.trim() : "",
         companyContactPerson: form.isCompanySponsored
           ? form.companyContactPerson.trim()
           : "",
         companyEmail: form.isCompanySponsored ? form.companyEmail.trim() : "",
-        companyContactFax: form.isCompanySponsored
-          ? form.companyContactFax.trim()
+        companyContactNumber: form.isCompanySponsored
+          ? form.companyContactNumber.trim()
           : "",
         companyMailingAddress: form.isCompanySponsored
           ? form.companyMailingAddress.trim()
           : "",
-        email: form.isCompanySponsored ? form.companyEmail.trim() : student.email,
-        status: form.status,
+        studentStatus: form.studentStatus,
         trainingStatus: form.trainingStatus,
         activeCourse: form.activeCourse,
         startDate: form.startDate,
@@ -296,7 +309,7 @@ export function EditStudentPage() {
         certificateStatus: form.certificateStatus,
         invoicePdfStatus: student.invoicePdfStatus,
         invoicePdfCount: student.invoicePdfCount,
-        uploadedPdfCount: student.uploadedPdfCount,
+        uploadedFileCount: student.uploadedFileCount ?? student.uploadedPdfCount,
         qrCodeValue: student.qrCodeValue || student.studentId
       });
 
@@ -387,17 +400,23 @@ export function EditStudentPage() {
               <div className="sm:col-span-2">
                 <TextField
                   label="Name as per NRIC/Passport"
-                  value={form.fullName}
+                  value={form.nameAsPerId}
                   required
-                  onChange={(value) => updateField("fullName", value)}
+                  onChange={(value) => updateField("nameAsPerId", value)}
                 />
               </div>
+              <SelectField
+                label="ID Type"
+                value={form.idType}
+                options={idTypeOptions}
+                onChange={(value) => updateField("idType", value as IdType)}
+              />
               <TextField
                 label="NRIC/Passport No. (Last 4 Digits)"
-                value={form.idNumber}
+                value={form.idLast4}
                 maxLength={4}
                 placeholder="123A"
-                onChange={(value) => updateField("idNumber", value)}
+                onChange={(value) => updateField("idLast4", value)}
               />
               <TextField
                 label="Date of Birth"
@@ -412,14 +431,20 @@ export function EditStudentPage() {
               />
               <TextField
                 label="Contact No."
-                value={form.phone}
-                onChange={(value) => updateField("phone", value)}
+                value={form.contactNumber}
+                onChange={(value) => updateField("contactNumber", value)}
+              />
+              <TextField
+                label="Email"
+                type="email"
+                value={form.email}
+                onChange={(value) => updateField("email", value)}
               />
               <div className="sm:col-span-2">
                 <TextAreaField
                   label="Residential Address"
-                  value={form.address}
-                  onChange={(value) => updateField("address", value)}
+                  value={form.residentialAddress}
+                  onChange={(value) => updateField("residentialAddress", value)}
                 />
               </div>
             </div>
@@ -490,9 +515,11 @@ export function EditStudentPage() {
                   onChange={(value) => updateField("companyEmail", value)}
                 />
                 <TextField
-                  label="Contact/Fax No."
-                  value={form.companyContactFax}
-                  onChange={(value) => updateField("companyContactFax", value)}
+                  label="Contact No."
+                  value={form.companyContactNumber}
+                  onChange={(value) =>
+                    updateField("companyContactNumber", value)
+                  }
                 />
                 <div className="sm:col-span-2">
                   <TextAreaField
@@ -526,9 +553,11 @@ export function EditStudentPage() {
             <div className="mt-5 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
               <SelectField
                 label="Student Status"
-                value={form.status}
+                value={form.studentStatus}
                 options={studentStatuses}
-                onChange={(value) => updateField("status", value as StudentStatus)}
+                onChange={(value) =>
+                  updateField("studentStatus", value as StudentStatus)
+                }
               />
               <SelectField
                 label="Training Status"
