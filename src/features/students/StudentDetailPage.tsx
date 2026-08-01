@@ -3,6 +3,7 @@ import {
   BadgeCheck,
   BookOpenCheck,
   Download,
+  Eye,
   FileArchive,
   FileText,
   GraduationCap,
@@ -788,15 +789,35 @@ function StudentFileList({
                 </p>
               ) : null}
             </div>
-            <a
-              href={file.driveUrl}
-              target="_blank"
-              rel="noreferrer"
-              className="inline-flex shrink-0 items-center justify-center gap-2 rounded-2xl bg-brand-blue px-4 py-3 text-sm font-black text-white shadow-glow transition hover:bg-brand-navy"
-            >
-              <Download size={17} />
-              Download
-            </a>
+            <div className="flex shrink-0 items-center gap-2">
+              <a
+                href={file.driveUrl}
+                target="_blank"
+                rel="noreferrer"
+                aria-label={`View ${file.fileName}`}
+                title="View file"
+                className="group relative inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-slate-200 bg-white text-slate-600 shadow-soft transition hover:-translate-y-0.5 hover:border-brand-blue/30 hover:bg-brand-blue hover:text-white hover:shadow-glow dark:border-white/10 dark:bg-white/5 dark:text-slate-300"
+              >
+                <Eye size={18} />
+                <span className="pointer-events-none absolute -top-10 left-1/2 z-10 -translate-x-1/2 whitespace-nowrap rounded-xl bg-slate-950 px-3 py-1.5 text-xs font-black text-white opacity-0 shadow-panel transition group-hover:opacity-100">
+                  View
+                </span>
+              </a>
+              <a
+                href={file.driveUrl}
+                download
+                target="_blank"
+                rel="noreferrer"
+                aria-label={`Download ${file.fileName}`}
+                title="Download file"
+                className="group relative inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-brand-blue text-white shadow-glow transition hover:-translate-y-0.5 hover:bg-brand-navy dark:bg-sky-500 dark:hover:bg-sky-400"
+              >
+                <Download size={18} />
+                <span className="pointer-events-none absolute -top-10 left-1/2 z-10 -translate-x-1/2 whitespace-nowrap rounded-xl bg-slate-950 px-3 py-1.5 text-xs font-black text-white opacity-0 shadow-panel transition group-hover:opacity-100">
+                  Download
+                </span>
+              </a>
+            </div>
           </div>
         </article>
       ))}
