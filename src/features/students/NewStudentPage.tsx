@@ -1,9 +1,11 @@
 import {
   ArrowLeft,
+  Building2,
   FileUp,
   GraduationCap,
   Loader2,
   Save,
+  UserRound,
   X
 } from "lucide-react";
 import { FormEvent, useMemo, useState } from "react";
@@ -45,6 +47,7 @@ type FormState = {
   nationality: string;
   phone: string;
   address: string;
+  isCompanySponsored: boolean;
   companyName: string;
   companyUen: string;
   companyContactPerson: string;
@@ -66,6 +69,7 @@ const initialForm: FormState = {
   nationality: "",
   phone: "",
   address: "",
+  isCompanySponsored: false,
   companyName: "",
   companyUen: "",
   companyContactPerson: "",
@@ -102,6 +106,23 @@ export function NewStudentPage() {
     }));
   }
 
+  function handleSponsorChange(isCompanySponsored: boolean) {
+    setForm((current) => ({
+      ...current,
+      isCompanySponsored,
+      companyName: isCompanySponsored ? current.companyName : "",
+      companyUen: isCompanySponsored ? current.companyUen : "",
+      companyContactPerson: isCompanySponsored
+        ? current.companyContactPerson
+        : "",
+      companyEmail: isCompanySponsored ? current.companyEmail : "",
+      companyContactFax: isCompanySponsored ? current.companyContactFax : "",
+      companyMailingAddress: isCompanySponsored
+        ? current.companyMailingAddress
+        : ""
+    }));
+  }
+
   function handleFiles(files: FileList | null) {
     if (!files) {
       return;
@@ -130,6 +151,11 @@ export function NewStudentPage() {
       return;
     }
 
+    if (form.isCompanySponsored && !form.companyName.trim()) {
+      setErrorMessage("Company name is required for company sponsored applications.");
+      return;
+    }
+
     setIsSubmitting(true);
     setErrorMessage("");
 
@@ -144,17 +170,23 @@ export function NewStudentPage() {
         lastName,
         preferredName: form.fullName.trim(),
         idNumber: form.idNumber.trim(),
-        dateOfBirth: form.dateOfBirth.trim(),
+        dateOfBirth: form.dateOfBirth,
         nationality: form.nationality.trim(),
         phone: form.phone.trim(),
         address: form.address.trim(),
-        companyName: form.companyName.trim(),
-        companyUen: form.companyUen.trim(),
-        companyContactPerson: form.companyContactPerson.trim(),
-        companyEmail: form.companyEmail.trim(),
-        companyContactFax: form.companyContactFax.trim(),
-        companyMailingAddress: form.companyMailingAddress.trim(),
-        email: form.companyEmail.trim(),
+        companyName: form.isCompanySponsored ? form.companyName.trim() : "",
+        companyUen: form.isCompanySponsored ? form.companyUen.trim() : "",
+        companyContactPerson: form.isCompanySponsored
+          ? form.companyContactPerson.trim()
+          : "",
+        companyEmail: form.isCompanySponsored ? form.companyEmail.trim() : "",
+        companyContactFax: form.isCompanySponsored
+          ? form.companyContactFax.trim()
+          : "",
+        companyMailingAddress: form.isCompanySponsored
+          ? form.companyMailingAddress.trim()
+          : "",
+        email: form.isCompanySponsored ? form.companyEmail.trim() : "",
         status: form.status,
         trainingStatus: form.trainingStatus,
         activeCourse: form.activeCourse,
@@ -206,7 +238,18 @@ export function NewStudentPage() {
 
         <div className="grid gap-6 xl:grid-cols-2">
           <section className="rounded-3xl border border-slate-200 bg-white/75 p-5 dark:border-white/10 dark:bg-white/5">
-            <h3 className="text-xl font-black">Applicant Particulars</h3>
+            <div className="flex items-center gap-3">
+              <div className="grid size-11 place-items-center rounded-2xl bg-brand-sky/15 text-brand-blue">
+                <UserRound size={22} />
+              </div>
+              <div>
+                <h3 className="text-xl font-black">Applicant Particulars</h3>
+                <p className="text-sm text-slate-500 dark:text-slate-300">
+                  Primary student details from the registration form.
+                </p>
+              </div>
+            </div>
+
             <div className="mt-5 grid gap-4 sm:grid-cols-2">
               <div className="sm:col-span-2">
                 <TextField
@@ -220,12 +263,13 @@ export function NewStudentPage() {
                 label="NRIC/Passport No. (Last 4 Digits)"
                 value={form.idNumber}
                 maxLength={4}
+                placeholder="123A"
                 onChange={(value) => updateField("idNumber", value)}
               />
               <TextField
-                label="Date of Birth (dd/mm/yyyy)"
+                label="Date of Birth"
+                type="date"
                 value={form.dateOfBirth}
-                placeholder="dd/mm/yyyy"
                 onChange={(value) => updateField("dateOfBirth", value)}
               />
               <TextField
@@ -249,48 +293,95 @@ export function NewStudentPage() {
           </section>
 
           <section className="rounded-3xl border border-slate-200 bg-white/75 p-5 dark:border-white/10 dark:bg-white/5">
-            <h3 className="text-xl font-black">
-              For Company Sponsored Application Only
-            </h3>
-            <div className="mt-5 grid gap-4 sm:grid-cols-2">
-              <TextField
-                label="Company Name"
-                value={form.companyName}
-                onChange={(value) => updateField("companyName", value)}
-              />
-              <TextField
-                label="Company UEN No."
-                value={form.companyUen}
-                onChange={(value) => updateField("companyUen", value)}
-              />
-              <TextField
-                label="Contact Person"
-                value={form.companyContactPerson}
-                onChange={(value) =>
-                  updateField("companyContactPerson", value)
-                }
-              />
-              <TextField
-                label="Email"
-                type="email"
-                value={form.companyEmail}
-                onChange={(value) => updateField("companyEmail", value)}
-              />
-              <TextField
-                label="Contact/Fax No."
-                value={form.companyContactFax}
-                onChange={(value) => updateField("companyContactFax", value)}
-              />
-              <div className="sm:col-span-2">
-                <TextAreaField
-                  label="Mailing Address"
-                  value={form.companyMailingAddress}
-                  onChange={(value) =>
-                    updateField("companyMailingAddress", value)
-                  }
-                />
+            <div className="flex items-center gap-3">
+              <div className="grid size-11 place-items-center rounded-2xl bg-brand-mint/15 text-brand-navy dark:text-brand-mint">
+                <Building2 size={22} />
+              </div>
+              <div>
+                <h3 className="text-xl font-black">Sponsorship</h3>
+                <p className="text-sm text-slate-500 dark:text-slate-300">
+                  Show company fields only when this application is sponsored.
+                </p>
               </div>
             </div>
+
+            <div className="mt-5 grid grid-cols-2 gap-2 rounded-3xl border border-slate-200 bg-slate-50 p-2 dark:border-white/10 dark:bg-white/5">
+              <button
+                type="button"
+                onClick={() => handleSponsorChange(false)}
+                className={`rounded-2xl px-4 py-3 text-sm font-black transition ${
+                  !form.isCompanySponsored
+                    ? "bg-white text-brand-blue shadow-sm dark:bg-white/12 dark:text-white"
+                    : "text-slate-500 hover:text-brand-blue dark:text-slate-300"
+                }`}
+              >
+                Self Sponsored
+              </button>
+              <button
+                type="button"
+                onClick={() => handleSponsorChange(true)}
+                className={`rounded-2xl px-4 py-3 text-sm font-black transition ${
+                  form.isCompanySponsored
+                    ? "bg-brand-blue text-white shadow-glow"
+                    : "text-slate-500 hover:text-brand-blue dark:text-slate-300"
+                }`}
+              >
+                Company Sponsored
+              </button>
+            </div>
+
+            {form.isCompanySponsored ? (
+              <div className="mt-5 grid gap-4 sm:grid-cols-2">
+                <TextField
+                  label="Company Name"
+                  value={form.companyName}
+                  required
+                  onChange={(value) => updateField("companyName", value)}
+                />
+                <TextField
+                  label="Company UEN No."
+                  value={form.companyUen}
+                  onChange={(value) => updateField("companyUen", value)}
+                />
+                <TextField
+                  label="Contact Person"
+                  value={form.companyContactPerson}
+                  onChange={(value) =>
+                    updateField("companyContactPerson", value)
+                  }
+                />
+                <TextField
+                  label="Email"
+                  type="email"
+                  value={form.companyEmail}
+                  onChange={(value) => updateField("companyEmail", value)}
+                />
+                <TextField
+                  label="Contact/Fax No."
+                  value={form.companyContactFax}
+                  onChange={(value) => updateField("companyContactFax", value)}
+                />
+                <div className="sm:col-span-2">
+                  <TextAreaField
+                    label="Mailing Address"
+                    value={form.companyMailingAddress}
+                    onChange={(value) =>
+                      updateField("companyMailingAddress", value)
+                    }
+                  />
+                </div>
+              </div>
+            ) : (
+              <div className="mt-5 rounded-3xl border border-dashed border-slate-200 bg-slate-50 px-5 py-8 text-center dark:border-white/10 dark:bg-white/5">
+                <p className="text-sm font-bold text-slate-600 dark:text-slate-200">
+                  No company details needed.
+                </p>
+                <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+                  Switch to Company Sponsored if the trainee is registered by an
+                  organisation.
+                </p>
+              </div>
+            )}
           </section>
 
           <section className="rounded-3xl border border-slate-200 bg-white/75 p-5 dark:border-white/10 dark:bg-white/5">
