@@ -163,13 +163,13 @@ export function StudentsPage() {
         icon={GraduationCap}
         accentClassName="border-brand-mint"
       >
-        <button
-          type="button"
+        <Link
+          to="/students/new"
           className="inline-flex items-center justify-center gap-2 rounded-2xl bg-brand-blue px-5 py-3 text-sm font-bold text-white shadow-glow transition hover:bg-brand-navy"
         >
           <Plus size={18} />
           Add Student
-        </button>
+        </Link>
       </PageHeader>
 
       <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
