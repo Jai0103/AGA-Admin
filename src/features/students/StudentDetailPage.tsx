@@ -141,6 +141,7 @@ export function StudentDetailPage() {
   const [previewFile, setPreviewFile] = useState<StudentFile | null>(null);
   const [deleteFile, setDeleteFile] = useState<StudentFile | null>(null);
   const [isDeletingFile, setIsDeletingFile] = useState(false);
+  const [deletedFileName, setDeletedFileName] = useState("");
   const [fileNotes, setFileNotes] = useState("");
   const [activeTab, setActiveTab] = useState<TabId>("profile");
 
@@ -296,7 +297,7 @@ export function StudentDetailPage() {
         fileId: deleteFile.fileId
       });
 
-      setDeleteFile(null);
+      setDeletedFileName(deleteFile.fileName);
       await loadStudentFiles();
     } catch (error) {
       setFilesErrorMessage(
@@ -541,8 +542,12 @@ export function StudentDetailPage() {
       {deleteFile ? (
         <DeleteFileModal
           file={deleteFile}
+          deletedFileName={deletedFileName}
           isDeleting={isDeletingFile}
-          onCancel={() => setDeleteFile(null)}
+          onCancel={() => {
+            setDeleteFile(null);
+            setDeletedFileName("");
+          }}
           onConfirm={handleDeleteFile}
         />
       ) : null}
@@ -953,15 +958,54 @@ function FilePreviewModal({
 
 function DeleteFileModal({
   file,
+  deletedFileName,
   isDeleting,
   onCancel,
   onConfirm
 }: {
   file: StudentFile;
+  deletedFileName: string;
   isDeleting: boolean;
   onCancel: () => void;
   onConfirm: () => void;
 }) {
+  if (deletedFileName) {
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 p-4 backdrop-blur-md">
+        <section className="w-full max-w-lg rounded-3xl border border-white/20 bg-white p-6 shadow-2xl dark:bg-slate-950">
+          <div className="flex items-start gap-4">
+            <div className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-emerald-100 text-emerald-700 dark:bg-emerald-400/10 dark:text-emerald-200">
+              <BadgeCheck size={22} />
+            </div>
+            <div className="min-w-0">
+              <p className="text-xs font-black uppercase tracking-[0.22em] text-emerald-700 dark:text-emerald-200">
+                Deleted
+              </p>
+              <h3 className="mt-2 text-2xl font-black">File deleted successfully</h3>
+              <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
+                The file was removed from the student record and moved to Drive
+                trash.
+              </p>
+              <p className="mt-4 truncate rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-black dark:border-white/10 dark:bg-white/5">
+                {deletedFileName}
+              </p>
+            </div>
+          </div>
+
+          <div className="mt-6 flex justify-end">
+            <button
+              type="button"
+              onClick={onCancel}
+              className="rounded-2xl bg-brand-blue px-5 py-3 text-sm font-black text-white shadow-glow transition hover:bg-brand-navy"
+            >
+              OK
+            </button>
+          </div>
+        </section>
+      </div>
+    );
+  }
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 p-4 backdrop-blur-md">
       <section className="w-full max-w-lg rounded-3xl border border-white/20 bg-white p-6 shadow-2xl dark:bg-slate-950">
