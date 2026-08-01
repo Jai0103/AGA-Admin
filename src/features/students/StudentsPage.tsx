@@ -2,11 +2,13 @@ import {
   CalendarCheck,
   FileText,
   GraduationCap,
+  Loader2,
   Plus,
   QrCode,
-  Search
+  Search,
+  ServerCrash
 } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 
 import { EmptyState } from "../../components/ui/EmptyState";
@@ -14,9 +16,10 @@ import { FilterSelect } from "../../components/ui/FilterSelect";
 import { PageHeader } from "../../components/ui/PageHeader";
 import { StatusBadge } from "../../components/ui/StatusBadge";
 import { SummaryCard } from "../../components/ui/SummaryCard";
-import { students } from "./student.data";
+import { listStudentsFromApi } from "./student.service";
 import type {
   InvoicePdfStatus,
+  Student,
   StudentFilters,
   StudentStatus,
   TrainingStatus
@@ -58,13 +61,49 @@ function formatDate(value?: string) {
   }).format(new Date(value));
 }
 
+function toNumber(value: unknown) {
+  const numberValue = Number(value);
+  return Number.isFinite(numberValue) ? numberValue : 0;
+}
+
 export function StudentsPage() {
+  const [students, setStudents] = useState<Student[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [errorMessage, setErrorMessage] = useState("");
   const [filters, setFilters] = useState<StudentFilters>({
     search: "",
     status: "All",
     trainingStatus: "All",
     invoicePdfStatus: "All"
   });
+
+  useEffect(() => {
+    let mounted = true;
+
+    setIsLoading(true);
+    setErrorMessage("");
+
+    listStudentsFromApi()
+      .then((response) => {
+        if (mounted) {
+          setStudents(response.students);
+        }
+      })
+      .catch((error: Error) => {
+        if (mounted) {
+          setErrorMessage(error.message);
+        }
+      })
+      .finally(() => {
+        if (mounted) {
+          setIsLoading(false);
+        }
+      });
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   const filteredStudents = useMemo(() => {
     const search = filters.search.trim().toLowerCase();
@@ -96,7 +135,7 @@ export function StudentsPage() {
         matchesInvoicePdfStatus
       );
     });
-  }, [filters]);
+  }, [filters, students]);
 
   const summary = useMemo(() => {
     const active = students.filter((student) => student.status === "Active").length;
@@ -104,23 +143,23 @@ export function StudentsPage() {
       (student) => student.certificateStatus === "Ready"
     ).length;
     const invoicePdfs = students.reduce(
-      (total, student) => total + student.invoicePdfCount,
+      (total, student) => total + toNumber(student.invoicePdfCount),
       0
     );
     const pdfCount = students.reduce(
-      (total, student) => total + student.uploadedPdfCount,
+      (total, student) => total + toNumber(student.uploadedPdfCount),
       0
     );
 
     return { active, readyCertificates, invoicePdfs, pdfCount };
-  }, []);
+  }, [students]);
 
   return (
     <div className="space-y-6">
       <PageHeader
         eyebrow="Student Information"
         title="Students"
-        description="Manage student profiles, training status, certificate readiness, uploaded finance invoice PDFs, student documents, and QR identifiers."
+        description="Manage live student profiles from Google Sheets, including training status, certificate readiness, uploaded finance invoice PDFs, student documents, and QR identifiers."
         icon={GraduationCap}
         accentClassName="border-brand-mint"
       >
@@ -195,11 +234,27 @@ export function StudentsPage() {
         </div>
       </section>
 
-      {filteredStudents.length === 0 ? (
+      {isLoading ? (
+        <section className="rounded-3xl border border-white/70 bg-white/86 p-8 text-center shadow-panel backdrop-blur-xl dark:border-white/10 dark:bg-white/7">
+          <Loader2 className="mx-auto animate-spin text-brand-blue" size={32} />
+          <h3 className="mt-4 text-xl font-black">Loading live students</h3>
+          <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
+            Fetching records from Google Sheets through Apps Script.
+          </p>
+        </section>
+      ) : errorMessage ? (
+        <section className="rounded-3xl border border-rose-200 bg-rose-50/80 p-8 shadow-panel backdrop-blur-xl dark:border-rose-400/20 dark:bg-rose-400/10">
+          <ServerCrash className="text-rose-600 dark:text-rose-200" size={32} />
+          <h3 className="mt-4 text-xl font-black">Could not load students</h3>
+          <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
+            {errorMessage}
+          </p>
+        </section>
+      ) : filteredStudents.length === 0 ? (
         <EmptyState
           icon={GraduationCap}
           title="No students found"
-          description="Try adjusting the search or filters to find a student record."
+          description="No live Google Sheets students match the current search or filters."
         />
       ) : (
         <>
@@ -229,14 +284,16 @@ export function StudentsPage() {
                         {student.studentNumber}
                       </div>
                       <div className="mt-1 text-slate-500 dark:text-slate-400">
-                        {student.email}
+                        {student.email || "No email"}
                       </div>
                       <div className="mt-3">
                         <StatusBadge value={student.status} />
                       </div>
                     </td>
                     <td className="px-5 py-5">
-                      <div className="font-semibold">{student.activeCourse}</div>
+                      <div className="font-semibold">
+                        {student.activeCourse || "No course assigned"}
+                      </div>
                       <div className="mt-3">
                         <StatusBadge value={student.trainingStatus} />
                       </div>
@@ -260,14 +317,14 @@ export function StudentsPage() {
                     <td className="px-5 py-5">
                       <StatusBadge value={student.invoicePdfStatus} />
                       <div className="mt-3 font-semibold">
-                        {student.invoicePdfCount} invoice PDF
-                        {student.invoicePdfCount === 1 ? "" : "s"}
+                        {toNumber(student.invoicePdfCount)} invoice PDF
+                        {toNumber(student.invoicePdfCount) === 1 ? "" : "s"}
                       </div>
                     </td>
                     <td className="px-5 py-5">
                       <div className="flex items-center gap-2 font-semibold">
                         <FileText size={16} className="text-brand-blue" />
-                        {student.uploadedPdfCount} PDFs
+                        {toNumber(student.uploadedPdfCount)} PDFs
                       </div>
                       <div className="mt-2 flex items-center gap-2 text-slate-500 dark:text-slate-400">
                         <CalendarCheck size={16} />
@@ -301,7 +358,9 @@ export function StudentsPage() {
 
                 <div className="mt-4 space-y-3 text-sm">
                   <div>
-                    <p className="font-semibold">{student.activeCourse}</p>
+                    <p className="font-semibold">
+                      {student.activeCourse || "No course assigned"}
+                    </p>
                     <div className="mt-2">
                       <StatusBadge value={student.trainingStatus} />
                     </div>
@@ -318,7 +377,10 @@ export function StudentsPage() {
                       </p>
                       <StatusBadge value={student.invoicePdfStatus} />
                     </div>
-                    <Detail label="PDFs" value={String(student.uploadedPdfCount)} />
+                    <Detail
+                      label="PDFs"
+                      value={String(toNumber(student.uploadedPdfCount))}
+                    />
                   </div>
                 </div>
               </Link>
