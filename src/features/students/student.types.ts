@@ -35,6 +35,16 @@ export type Student = {
   phone: string;
   nationality: string;
   dateOfBirth: string;
+  idNumber?: string;
+  address?: string;
+  companyName?: string;
+  companyUen?: string;
+  companyContactPerson?: string;
+  companyEmail?: string;
+  companyContactFax?: string;
+  companyMailingAddress?: string;
+  emergencyContactName?: string;
+  emergencyContactPhone?: string;
   status: StudentStatus;
   trainingStatus: TrainingStatus;
   startDate: string;
@@ -46,7 +56,10 @@ export type Student = {
   invoicePdfCount: number;
   uploadedPdfCount: number;
   qrCodeValue: string;
+  createdAt?: string;
   updatedAt: string;
+  createdBy?: string;
+  updatedBy?: string;
 };
 
 export type StudentFilters = {
