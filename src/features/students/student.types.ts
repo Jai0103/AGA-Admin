@@ -30,23 +30,35 @@ export type IdType = "NRIC" | "Passport" | "FIN" | "Other" | "NRIC/Passport";
 export type Student = {
   studentId: string;
   studentNumber: string;
-  nameAsPerId: string;
+
+  nameAsPerId?: string;
   preferredName?: string;
-  idType: IdType;
-  idLast4: string;
+  idType?: IdType;
+  idLast4?: string;
   dateOfBirth: string;
   nationality: string;
-  contactNumber: string;
+  contactNumber?: string;
   email: string;
-  residentialAddress: string;
-  isCompanySponsored: boolean | string;
+  residentialAddress?: string;
+  isCompanySponsored?: boolean | string;
   companyName?: string;
   companyUen?: string;
   companyContactPerson?: string;
   companyEmail?: string;
   companyContactNumber?: string;
   companyMailingAddress?: string;
-  studentStatus: StudentStatus;
+  studentStatus?: StudentStatus;
+  uploadedFileCount?: number;
+
+  firstName: string;
+  lastName: string;
+  phone: string;
+  idNumber?: string;
+  address?: string;
+  status: StudentStatus;
+  companyContactFax?: string;
+  uploadedPdfCount: number;
+
   trainingStatus: TrainingStatus;
   activeCourse: string;
   startDate: string;
@@ -55,21 +67,11 @@ export type Student = {
   certificateStatus: CertificateStatus;
   invoicePdfStatus: InvoicePdfStatus;
   invoicePdfCount: number;
-  uploadedFileCount: number;
   qrCodeValue: string;
   createdAt?: string;
   updatedAt: string;
   createdBy?: string;
   updatedBy?: string;
-
-  firstName?: string;
-  lastName?: string;
-  phone?: string;
-  idNumber?: string;
-  address?: string;
-  status?: StudentStatus;
-  companyContactFax?: string;
-  uploadedPdfCount?: number;
 };
 
 export type StudentFilters = {
