@@ -14,7 +14,12 @@ import { toast } from "sonner";
 
 import { PageHeader } from "../../components/ui/PageHeader";
 import { createStudentInApi } from "./student.service";
-import type { CertificateStatus, StudentStatus, TrainingStatus } from "./student.types";
+import type {
+  CertificateStatus,
+  IdType,
+  StudentStatus,
+  TrainingStatus
+} from "./student.types";
 
 const courseOptions = [
   "UATO Theory Course",
@@ -23,6 +28,8 @@ const courseOptions = [
   "UAPL Theory Refresher",
   "Custom Course"
 ];
+
+const idTypeOptions: IdType[] = ["NRIC", "Passport", "FIN", "Other"];
 
 const studentStatuses: StudentStatus[] = [
   "Active",
@@ -41,20 +48,22 @@ const trainingStatuses: TrainingStatus[] = [
 ];
 
 type FormState = {
-  fullName: string;
-  idNumber: string;
+  nameAsPerId: string;
+  idType: IdType;
+  idLast4: string;
   dateOfBirth: string;
   nationality: string;
-  phone: string;
-  address: string;
+  contactNumber: string;
+  email: string;
+  residentialAddress: string;
   isCompanySponsored: boolean;
   companyName: string;
   companyUen: string;
   companyContactPerson: string;
   companyEmail: string;
-  companyContactFax: string;
+  companyContactNumber: string;
   companyMailingAddress: string;
-  status: StudentStatus;
+  studentStatus: StudentStatus;
   trainingStatus: TrainingStatus;
   activeCourse: string;
   startDate: string;
@@ -63,20 +72,22 @@ type FormState = {
 };
 
 const initialForm: FormState = {
-  fullName: "",
-  idNumber: "",
+  nameAsPerId: "",
+  idType: "NRIC",
+  idLast4: "",
   dateOfBirth: "",
   nationality: "",
-  phone: "",
-  address: "",
+  contactNumber: "",
+  email: "",
+  residentialAddress: "",
   isCompanySponsored: false,
   companyName: "",
   companyUen: "",
   companyContactPerson: "",
   companyEmail: "",
-  companyContactFax: "",
+  companyContactNumber: "",
   companyMailingAddress: "",
-  status: "Active",
+  studentStatus: "Active",
   trainingStatus: "Not Started",
   activeCourse: "UATO Theory Course",
   startDate: "",
@@ -116,7 +127,9 @@ export function NewStudentPage() {
         ? current.companyContactPerson
         : "",
       companyEmail: isCompanySponsored ? current.companyEmail : "",
-      companyContactFax: isCompanySponsored ? current.companyContactFax : "",
+      companyContactNumber: isCompanySponsored
+        ? current.companyContactNumber
+        : "",
       companyMailingAddress: isCompanySponsored
         ? current.companyMailingAddress
         : ""
@@ -146,7 +159,7 @@ export function NewStudentPage() {
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
-    if (!form.fullName.trim()) {
+    if (!form.nameAsPerId.trim()) {
       setErrorMessage("Name as per NRIC/Passport is required.");
       return;
     }
@@ -160,40 +173,38 @@ export function NewStudentPage() {
     setErrorMessage("");
 
     try {
-      const nameParts = form.fullName.trim().split(/\s+/);
-      const firstName = nameParts[0] ?? form.fullName.trim();
-      const lastName =
-        nameParts.length > 1 ? nameParts.slice(1).join(" ") : "-";
-
       await createStudentInApi({
-        firstName,
-        lastName,
-        preferredName: form.fullName.trim(),
-        idNumber: form.idNumber.trim(),
+        nameAsPerId: form.nameAsPerId.trim(),
+        preferredName: form.nameAsPerId.trim(),
+        idType: form.idType,
+        idLast4: form.idLast4.trim(),
         dateOfBirth: form.dateOfBirth,
         nationality: form.nationality.trim(),
-        phone: form.phone.trim(),
-        address: form.address.trim(),
+        contactNumber: form.contactNumber.trim(),
+        email: form.email.trim(),
+        residentialAddress: form.residentialAddress.trim(),
+        isCompanySponsored: form.isCompanySponsored,
         companyName: form.isCompanySponsored ? form.companyName.trim() : "",
         companyUen: form.isCompanySponsored ? form.companyUen.trim() : "",
         companyContactPerson: form.isCompanySponsored
           ? form.companyContactPerson.trim()
           : "",
         companyEmail: form.isCompanySponsored ? form.companyEmail.trim() : "",
-        companyContactFax: form.isCompanySponsored
-          ? form.companyContactFax.trim()
+        companyContactNumber: form.isCompanySponsored
+          ? form.companyContactNumber.trim()
           : "",
         companyMailingAddress: form.isCompanySponsored
           ? form.companyMailingAddress.trim()
           : "",
-        email: form.isCompanySponsored ? form.companyEmail.trim() : "",
-        status: form.status,
+        studentStatus: form.studentStatus,
         trainingStatus: form.trainingStatus,
         activeCourse: form.activeCourse,
         startDate: form.startDate,
         targetCompletionDate: form.targetCompletionDate,
         certificateStatus: form.certificateStatus,
-        invoicePdfStatus: "No Invoice PDF"
+        invoicePdfStatus: "No Invoice PDF",
+        invoicePdfCount: 0,
+        uploadedFileCount: 0
       });
 
       toast.success("Student created");
@@ -254,17 +265,23 @@ export function NewStudentPage() {
               <div className="sm:col-span-2">
                 <TextField
                   label="Name as per NRIC/Passport"
-                  value={form.fullName}
+                  value={form.nameAsPerId}
                   required
-                  onChange={(value) => updateField("fullName", value)}
+                  onChange={(value) => updateField("nameAsPerId", value)}
                 />
               </div>
+              <SelectField
+                label="ID Type"
+                value={form.idType}
+                options={idTypeOptions}
+                onChange={(value) => updateField("idType", value as IdType)}
+              />
               <TextField
                 label="NRIC/Passport No. (Last 4 Digits)"
-                value={form.idNumber}
+                value={form.idLast4}
                 maxLength={4}
                 placeholder="123A"
-                onChange={(value) => updateField("idNumber", value)}
+                onChange={(value) => updateField("idLast4", value)}
               />
               <TextField
                 label="Date of Birth"
@@ -279,14 +296,20 @@ export function NewStudentPage() {
               />
               <TextField
                 label="Contact No."
-                value={form.phone}
-                onChange={(value) => updateField("phone", value)}
+                value={form.contactNumber}
+                onChange={(value) => updateField("contactNumber", value)}
+              />
+              <TextField
+                label="Email"
+                type="email"
+                value={form.email}
+                onChange={(value) => updateField("email", value)}
               />
               <div className="sm:col-span-2">
                 <TextAreaField
                   label="Residential Address"
-                  value={form.address}
-                  onChange={(value) => updateField("address", value)}
+                  value={form.residentialAddress}
+                  onChange={(value) => updateField("residentialAddress", value)}
                 />
               </div>
             </div>
@@ -357,9 +380,11 @@ export function NewStudentPage() {
                   onChange={(value) => updateField("companyEmail", value)}
                 />
                 <TextField
-                  label="Contact/Fax No."
-                  value={form.companyContactFax}
-                  onChange={(value) => updateField("companyContactFax", value)}
+                  label="Contact No."
+                  value={form.companyContactNumber}
+                  onChange={(value) =>
+                    updateField("companyContactNumber", value)
+                  }
                 />
                 <div className="sm:col-span-2">
                   <TextAreaField
@@ -393,9 +418,11 @@ export function NewStudentPage() {
             <div className="mt-5 grid gap-4 sm:grid-cols-2">
               <SelectField
                 label="Student Status"
-                value={form.status}
+                value={form.studentStatus}
                 options={studentStatuses}
-                onChange={(value) => updateField("status", value as StudentStatus)}
+                onChange={(value) =>
+                  updateField("studentStatus", value as StudentStatus)
+                }
               />
               <SelectField
                 label="Training Status"
