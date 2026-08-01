@@ -292,7 +292,10 @@ export function StudentsPage() {
               </thead>
               <tbody className="divide-y divide-slate-200 dark:divide-white/10">
                 {filteredStudents.map((student) => (
-                  <tr key={student.studentId} className="align-top">
+                  <tr
+                    key={student.studentId}
+                    className="align-top transition hover:bg-brand-sky/6 dark:hover:bg-white/4"
+                  >
                     <td className="px-5 py-5">
                       <Link
                         to={`/students/${student.studentId}`}
@@ -456,10 +459,11 @@ function ActionLink({ to, label, icon: Icon }: ActionLinkProps) {
   return (
     <Link
       to={to}
-      className="inline-flex items-center justify-center gap-2 rounded-2xl border border-brand-blue/20 bg-brand-sky/10 px-3 py-2 text-xs font-black text-brand-blue transition hover:border-brand-blue hover:bg-brand-blue hover:text-white"
+      aria-label={label}
+      className="group relative inline-grid size-10 place-items-center rounded-2xl border border-brand-blue/20 bg-white/90 text-brand-blue shadow-sm transition hover:-translate-y-0.5 hover:border-brand-blue hover:bg-brand-blue hover:text-white hover:shadow-glow focus:outline-none focus:ring-4 focus:ring-brand-sky/20 dark:border-white/10 dark:bg-white/7 dark:text-brand-sky"
     >
-      <Icon size={15} />
-      {label}
+      <Icon size={17} strokeWidth={2.4} />
+      <Tooltip label={label} />
     </Link>
   );
 }
@@ -480,16 +484,40 @@ function ActionButton({
   return (
     <button
       type="button"
-      disabled={disabled}
-      title={disabled ? `${label} will be enabled after backend endpoint setup` : label}
-      className={`inline-flex items-center justify-center gap-2 rounded-2xl border px-3 py-2 text-xs font-black transition disabled:cursor-not-allowed disabled:opacity-45 ${
+      aria-label={label}
+      aria-disabled={disabled}
+      onClick={(event) => {
+        if (disabled) {
+          event.preventDefault();
+        }
+      }}
+      className={`group relative inline-grid size-10 place-items-center rounded-2xl border shadow-sm transition hover:-translate-y-0.5 focus:outline-none focus:ring-4 ${
+        disabled
+          ? "cursor-not-allowed opacity-55"
+          : "cursor-pointer"
+      } ${
         danger
-          ? "border-rose-200 bg-rose-50 text-rose-700 hover:border-rose-500 hover:bg-rose-600 hover:text-white dark:border-rose-400/20 dark:bg-rose-400/10 dark:text-rose-200"
-          : "border-slate-200 bg-white text-slate-600 hover:border-brand-blue hover:text-brand-blue dark:border-white/10 dark:bg-white/5 dark:text-slate-200"
+          ? "border-rose-200 bg-rose-50 text-rose-700 hover:border-rose-500 hover:bg-rose-600 hover:text-white focus:ring-rose-200 dark:border-rose-400/20 dark:bg-rose-400/10 dark:text-rose-200"
+          : "border-slate-200 bg-white/90 text-slate-600 hover:border-brand-blue hover:bg-brand-blue hover:text-white focus:ring-brand-sky/20 dark:border-white/10 dark:bg-white/7 dark:text-slate-200"
       }`}
     >
-      <Icon size={15} />
-      {label}
+      <Icon size={17} strokeWidth={2.4} />
+      <Tooltip
+        label={
+          disabled
+            ? `${label} will be enabled after backend setup`
+            : label
+        }
+      />
     </button>
+  );
+}
+
+function Tooltip({ label }: { label: string }) {
+  return (
+    <span className="pointer-events-none absolute -top-11 left-1/2 z-20 w-max max-w-[220px] -translate-x-1/2 translate-y-1 rounded-xl bg-brand-navy px-3 py-2 text-xs font-black text-white opacity-0 shadow-xl ring-1 ring-white/10 transition group-hover:translate-y-0 group-hover:opacity-100 group-focus-visible:translate-y-0 group-focus-visible:opacity-100 dark:bg-white dark:text-brand-navy">
+      {label}
+      <span className="absolute left-1/2 top-full size-2 -translate-x-1/2 -translate-y-1 rotate-45 bg-brand-navy dark:bg-white" />
+    </span>
   );
 }
