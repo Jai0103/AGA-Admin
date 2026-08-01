@@ -56,10 +56,32 @@ function formatDate(value?: string) {
   }).format(parsedDate);
 }
 
-function fullName(student: Student) {
-  return [student.firstName, student.lastName]
+function studentName(student: Student) {
+  const legacyName = [student.firstName, student.lastName]
     .filter((part) => part && part !== "-")
     .join(" ");
+
+  return student.nameAsPerId || student.preferredName || legacyName || "-";
+}
+
+function contactNumber(student: Student) {
+  return String(student.contactNumber || student.phone || "");
+}
+
+function residentialAddress(student: Student) {
+  return student.residentialAddress || student.address || "";
+}
+
+function studentStatus(student: Student) {
+  return student.studentStatus || student.status;
+}
+
+function idLast4(student: Student) {
+  return student.idLast4 || student.idNumber || "";
+}
+
+function companyContactNumber(student: Student) {
+  return student.companyContactNumber || student.companyContactFax || "";
 }
 
 export function StudentDetailPage() {
@@ -181,9 +203,9 @@ export function StudentDetailPage() {
           <div>
             <div className="flex flex-wrap items-center gap-3">
               <h2 className="text-3xl font-black tracking-tight sm:text-4xl">
-                {fullName(student)}
+                {studentName(student)}
               </h2>
-              <StatusBadge value={student.status} />
+              <StatusBadge value={studentStatus(student)} />
             </div>
             <p className="mt-2 text-slate-500 dark:text-slate-400">
               {student.studentNumber} · {student.activeCourse || "No course assigned"}
@@ -192,11 +214,11 @@ export function StudentDetailPage() {
             <div className="mt-5 flex flex-wrap gap-3 text-sm text-slate-600 dark:text-slate-300">
               <span className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white/70 px-3 py-2 dark:border-white/10 dark:bg-white/5">
                 <Mail size={16} />
-                {student.email || "No email"}
+                {student.email || student.companyEmail || "No email"}
               </span>
               <span className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white/70 px-3 py-2 dark:border-white/10 dark:bg-white/5">
                 <Phone size={16} />
-                {student.phone || "No phone"}
+                {contactNumber(student) || "No phone"}
               </span>
               <span className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white/70 px-3 py-2 dark:border-white/10 dark:bg-white/5">
                 <QrCode size={16} />
@@ -238,20 +260,22 @@ export function StudentDetailPage() {
           <InfoCard
             title="Applicant Particulars"
             rows={[
-              ["Name as per NRIC/Passport", fullName(student)],
+              ["Name as per NRIC/Passport", studentName(student)],
               ["Preferred name", student.preferredName || "-"],
-              ["NRIC/Passport No.", student.idNumber || "-"],
+              ["ID type", student.idType || "-"],
+              ["ID last 4", idLast4(student) || "-"],
               ["Date of birth", formatDate(student.dateOfBirth)],
               ["Nationality", student.nationality || "-"],
-              ["Contact No.", student.phone || "-"],
-              ["Residential address", student.address || "-"]
+              ["Contact No.", contactNumber(student) || "-"],
+              ["Email", student.email || "-"],
+              ["Residential address", residentialAddress(student) || "-"]
             ]}
           />
           <InfoCard
             title="Training Overview"
             rows={[
               ["Current course", student.activeCourse || "-"],
-              ["Student status", student.status],
+              ["Student status", studentStatus(student)],
               ["Training status", student.trainingStatus],
               ["Start date", formatDate(student.startDate)],
               ["Target completion", formatDate(student.targetCompletionDate)],
@@ -265,8 +289,8 @@ export function StudentDetailPage() {
               ["Company name", student.companyName || "-"],
               ["Company UEN No.", student.companyUen || "-"],
               ["Contact person", student.companyContactPerson || "-"],
-              ["Email", student.companyEmail || student.email || "-"],
-              ["Contact/Fax No.", student.companyContactFax || "-"],
+              ["Email", student.companyEmail || "-"],
+              ["Contact No.", companyContactNumber(student) || "-"],
               ["Mailing address", student.companyMailingAddress || "-"]
             ]}
           />
