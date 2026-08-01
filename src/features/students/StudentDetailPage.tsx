@@ -14,6 +14,7 @@ import {
   QrCode,
   ReceiptText,
   ServerCrash,
+  Trash2,
   UploadCloud,
   X
 } from "lucide-react";
@@ -27,6 +28,7 @@ import { managedFiles } from "../file-manager/file.data";
 import { trainingEnrolments } from "../training-enrolments/enrolment.data";
 import { trainingRecords } from "../training-records/training-record.data";
 import {
+  deleteStudentFileFromApi,
   listStudentFilesFromApi,
   readFileAsBase64,
   uploadStudentFileToApi
@@ -136,6 +138,9 @@ export function StudentDetailPage() {
   const [selectedModule, setSelectedModule] =
     useState<(typeof fileModules)[number]>("Registration Form");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [previewFile, setPreviewFile] = useState<StudentFile | null>(null);
+  const [deleteFile, setDeleteFile] = useState<StudentFile | null>(null);
+  const [isDeletingFile, setIsDeletingFile] = useState(false);
   const [fileNotes, setFileNotes] = useState("");
   const [activeTab, setActiveTab] = useState<TabId>("profile");
 
@@ -275,6 +280,30 @@ export function StudentDetailPage() {
       );
     } finally {
       setIsUploading(false);
+    }
+  }
+
+  async function handleDeleteFile() {
+    if (!deleteFile) {
+      return;
+    }
+
+    setIsDeletingFile(true);
+    setFilesErrorMessage("");
+
+    try {
+      await deleteStudentFileFromApi({
+        fileId: deleteFile.fileId
+      });
+
+      setDeleteFile(null);
+      await loadStudentFiles();
+    } catch (error) {
+      setFilesErrorMessage(
+        error instanceof Error ? error.message : "Could not delete file."
+      );
+    } finally {
+      setIsDeletingFile(false);
     }
   }
 
@@ -468,6 +497,8 @@ export function StudentDetailPage() {
             files={studentFiles}
             isLoading={isFilesLoading}
             errorMessage={filesErrorMessage}
+            onDelete={setDeleteFile}
+            onPreview={setPreviewFile}
           />
         </section>
       )}
@@ -502,6 +533,19 @@ export function StudentDetailPage() {
           </p>
         </section>
       )}
+
+      {previewFile ? (
+        <FilePreviewModal file={previewFile} onClose={() => setPreviewFile(null)} />
+      ) : null}
+
+      {deleteFile ? (
+        <DeleteFileModal
+          file={deleteFile}
+          isDeleting={isDeletingFile}
+          onCancel={() => setDeleteFile(null)}
+          onConfirm={handleDeleteFile}
+        />
+      ) : null}
     </div>
   );
 }
@@ -728,12 +772,16 @@ function StudentFileList({
   emptyText,
   files,
   isLoading,
-  errorMessage
+  errorMessage,
+  onDelete,
+  onPreview
 }: {
   emptyText: string;
   files: StudentFile[];
   isLoading: boolean;
   errorMessage: string;
+  onDelete: (file: StudentFile) => void;
+  onPreview: (file: StudentFile) => void;
 }) {
   if (isLoading) {
     return (
@@ -790,10 +838,9 @@ function StudentFileList({
               ) : null}
             </div>
             <div className="flex shrink-0 items-center gap-2">
-              <a
-                href={file.driveUrl}
-                target="_blank"
-                rel="noreferrer"
+              <button
+                type="button"
+                onClick={() => onPreview(file)}
                 aria-label={`View ${file.fileName}`}
                 title="View file"
                 className="group relative inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-slate-200 bg-white text-slate-600 shadow-soft transition hover:-translate-y-0.5 hover:border-brand-blue/30 hover:bg-brand-blue hover:text-white hover:shadow-glow dark:border-white/10 dark:bg-white/5 dark:text-slate-300"
@@ -802,7 +849,7 @@ function StudentFileList({
                 <span className="pointer-events-none absolute -top-10 left-1/2 z-10 -translate-x-1/2 whitespace-nowrap rounded-xl bg-slate-950 px-3 py-1.5 text-xs font-black text-white opacity-0 shadow-panel transition group-hover:opacity-100">
                   View
                 </span>
-              </a>
+              </button>
               <a
                 href={file.driveUrl}
                 download
@@ -817,11 +864,147 @@ function StudentFileList({
                   Download
                 </span>
               </a>
+              <button
+                type="button"
+                onClick={() => onDelete(file)}
+                aria-label={`Delete ${file.fileName}`}
+                title="Delete file"
+                className="group relative inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-rose-200 bg-white text-rose-600 shadow-soft transition hover:-translate-y-0.5 hover:border-rose-500 hover:bg-rose-600 hover:text-white dark:border-rose-400/20 dark:bg-white/5 dark:text-rose-300"
+              >
+                <Trash2 size={18} />
+                <span className="pointer-events-none absolute -top-10 left-1/2 z-10 -translate-x-1/2 whitespace-nowrap rounded-xl bg-slate-950 px-3 py-1.5 text-xs font-black text-white opacity-0 shadow-panel transition group-hover:opacity-100">
+                  Delete
+                </span>
+              </button>
             </div>
           </div>
         </article>
       ))}
     </section>
+  );
+}
+
+function FilePreviewModal({
+  file,
+  onClose
+}: {
+  file: StudentFile;
+  onClose: () => void;
+}) {
+  const previewUrl = file.driveFileId
+    ? `https://drive.google.com/file/d/${file.driveFileId}/preview`
+    : file.driveUrl;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 p-4 backdrop-blur-md">
+      <section className="flex h-[88vh] w-full max-w-6xl flex-col overflow-hidden rounded-3xl border border-white/20 bg-white shadow-2xl dark:bg-slate-950">
+        <header className="flex flex-col gap-3 border-b border-slate-200 bg-slate-50/90 p-4 dark:border-white/10 dark:bg-white/5 sm:flex-row sm:items-center sm:justify-between">
+          <div className="min-w-0">
+            <p className="text-xs font-black uppercase tracking-[0.22em] text-brand-blue">
+              File preview
+            </p>
+            <h3 className="mt-1 truncate text-lg font-black">{file.fileName}</h3>
+            <p className="mt-1 text-xs font-semibold text-slate-500 dark:text-slate-400">
+              {file.module} - Uploaded {formatDate(file.uploadedAt)}
+            </p>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <a
+              href={file.driveUrl}
+              download
+              target="_blank"
+              rel="noreferrer"
+              aria-label={`Download ${file.fileName}`}
+              title="Download file"
+              className="group relative inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-brand-blue text-white shadow-glow transition hover:bg-brand-navy"
+            >
+              <Download size={18} />
+              <span className="pointer-events-none absolute -bottom-10 left-1/2 z-10 -translate-x-1/2 whitespace-nowrap rounded-xl bg-slate-950 px-3 py-1.5 text-xs font-black text-white opacity-0 shadow-panel transition group-hover:opacity-100">
+                Download
+              </span>
+            </a>
+            <button
+              type="button"
+              onClick={onClose}
+              aria-label="Close preview"
+              title="Close preview"
+              className="group relative inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-slate-200 bg-white text-slate-600 transition hover:bg-slate-100 dark:border-white/10 dark:bg-white/5 dark:text-slate-300 dark:hover:bg-white/10"
+            >
+              <X size={18} />
+              <span className="pointer-events-none absolute -bottom-10 left-1/2 z-10 -translate-x-1/2 whitespace-nowrap rounded-xl bg-slate-950 px-3 py-1.5 text-xs font-black text-white opacity-0 shadow-panel transition group-hover:opacity-100">
+                Close
+              </span>
+            </button>
+          </div>
+        </header>
+
+        <div className="min-h-0 flex-1 bg-slate-100 p-3 dark:bg-slate-900">
+          <iframe
+            title={file.fileName}
+            src={previewUrl}
+            className="h-full w-full rounded-2xl border border-slate-200 bg-white dark:border-white/10"
+          />
+        </div>
+      </section>
+    </div>
+  );
+}
+
+function DeleteFileModal({
+  file,
+  isDeleting,
+  onCancel,
+  onConfirm
+}: {
+  file: StudentFile;
+  isDeleting: boolean;
+  onCancel: () => void;
+  onConfirm: () => void;
+}) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 p-4 backdrop-blur-md">
+      <section className="w-full max-w-lg rounded-3xl border border-white/20 bg-white p-6 shadow-2xl dark:bg-slate-950">
+        <div className="flex items-start gap-4">
+          <div className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-rose-100 text-rose-600 dark:bg-rose-400/10 dark:text-rose-200">
+            <Trash2 size={22} />
+          </div>
+          <div className="min-w-0">
+            <p className="text-xs font-black uppercase tracking-[0.22em] text-rose-600">
+              Delete file
+            </p>
+            <h3 className="mt-2 text-2xl font-black">Move this file to trash?</h3>
+            <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
+              This will remove the file from the student record and move the
+              Drive file to trash.
+            </p>
+            <p className="mt-4 truncate rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-black dark:border-white/10 dark:bg-white/5">
+              {file.fileName}
+            </p>
+          </div>
+        </div>
+
+        <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+          <button
+            type="button"
+            onClick={onCancel}
+            disabled={isDeleting}
+            className="rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-black text-slate-700 transition hover:bg-slate-50 disabled:opacity-50 dark:border-white/10 dark:bg-white/5 dark:text-slate-200 dark:hover:bg-white/10"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={onConfirm}
+            disabled={isDeleting}
+            className="inline-flex items-center justify-center gap-2 rounded-2xl bg-rose-600 px-5 py-3 text-sm font-black text-white shadow-lg shadow-rose-600/20 transition hover:bg-rose-700 disabled:opacity-50"
+          >
+            {isDeleting ? <Loader2 className="animate-spin" size={18} /> : <Trash2 size={18} />}
+            {isDeleting ? "Deleting" : "Delete file"}
+          </button>
+        </div>
+      </section>
+    </div>
   );
 }
 
