@@ -33,12 +33,26 @@ export type UploadStudentFileResponse = {
   file: StudentFile;
 };
 
+export type DeleteStudentFilePayload = {
+  fileId: string;
+};
+
+export type DeleteStudentFileResponse = {
+  fileId: string;
+  studentId: string;
+  deleted: boolean;
+};
+
 export function listStudentFilesFromApi(studentId: string) {
   return apiGet<ListStudentFilesResponse>("listStudentFiles", { studentId });
 }
 
 export function uploadStudentFileToApi(payload: UploadStudentFilePayload) {
   return apiPost<UploadStudentFileResponse>("uploadStudentFile", payload);
+}
+
+export function deleteStudentFileFromApi(payload: DeleteStudentFilePayload) {
+  return apiPost<DeleteStudentFileResponse>("deleteStudentFile", payload);
 }
 
 export function readFileAsBase64(file: File) {
@@ -51,10 +65,7 @@ export function readFileAsBase64(file: File) {
       resolve(base64Data);
     };
 
-    reader.onerror = () => {
-      reject(new Error("Could not read selected file."));
-    };
-
+    reader.onerror = () => reject(new Error("Could not read selected file."));
     reader.readAsDataURL(file);
   });
 }
