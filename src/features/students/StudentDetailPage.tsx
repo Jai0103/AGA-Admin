@@ -37,14 +37,16 @@ const tabs = [
 type TabId = (typeof tabs)[number]["id"];
 
 function formatDate(value?: string) {
-  if (!value || String(value).trim() === "") {
+  const rawValue = String(value ?? "").trim();
+
+  if (!rawValue) {
     return "-";
   }
 
-  const parsedDate = new Date(value);
+  const parsedDate = new Date(rawValue);
 
   if (Number.isNaN(parsedDate.getTime())) {
-    return String(value);
+    return rawValue;
   }
 
   return new Intl.DateTimeFormat("en-SG", {
@@ -52,6 +54,12 @@ function formatDate(value?: string) {
     month: "short",
     year: "numeric"
   }).format(parsedDate);
+}
+
+function fullName(student: Student) {
+  return [student.firstName, student.lastName]
+    .filter((part) => part && part !== "-")
+    .join(" ");
 }
 
 export function StudentDetailPage() {
@@ -108,7 +116,9 @@ export function StudentDetailPage() {
       };
     }
 
-    const files = managedFiles.filter((file) => file.studentId === student.studentId);
+    const files = managedFiles.filter(
+      (file) => file.studentId === student.studentId
+    );
 
     return {
       enrolments: trainingEnrolments.filter(
@@ -171,7 +181,7 @@ export function StudentDetailPage() {
           <div>
             <div className="flex flex-wrap items-center gap-3">
               <h2 className="text-3xl font-black tracking-tight sm:text-4xl">
-                {student.firstName} {student.lastName}
+                {fullName(student)}
               </h2>
               <StatusBadge value={student.status} />
             </div>
@@ -190,7 +200,7 @@ export function StudentDetailPage() {
               </span>
               <span className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white/70 px-3 py-2 dark:border-white/10 dark:bg-white/5">
                 <QrCode size={16} />
-                {student.qrCodeValue}
+                {student.qrCodeValue || student.studentId}
               </span>
             </div>
           </div>
@@ -226,25 +236,38 @@ export function StudentDetailPage() {
       {activeTab === "profile" && (
         <section className="grid gap-4 lg:grid-cols-2">
           <InfoCard
-            title="Personal Profile"
+            title="Applicant Particulars"
             rows={[
-              ["Full name", `${student.firstName} ${student.lastName}`],
+              ["Name as per NRIC/Passport", fullName(student)],
               ["Preferred name", student.preferredName || "-"],
-              ["Nationality", student.nationality || "-"],
+              ["NRIC/Passport No.", student.idNumber || "-"],
               ["Date of birth", formatDate(student.dateOfBirth)],
-              ["Email", student.email || "-"],
-              ["Phone", student.phone || "-"]
+              ["Nationality", student.nationality || "-"],
+              ["Contact No.", student.phone || "-"],
+              ["Residential address", student.address || "-"]
             ]}
           />
           <InfoCard
             title="Training Overview"
             rows={[
               ["Current course", student.activeCourse || "-"],
+              ["Student status", student.status],
               ["Training status", student.trainingStatus],
               ["Start date", formatDate(student.startDate)],
               ["Target completion", formatDate(student.targetCompletionDate)],
               ["Completion date", formatDate(student.completionDate)],
               ["Certificate status", student.certificateStatus]
+            ]}
+          />
+          <InfoCard
+            title="Company Sponsored Application"
+            rows={[
+              ["Company name", student.companyName || "-"],
+              ["Company UEN No.", student.companyUen || "-"],
+              ["Contact person", student.companyContactPerson || "-"],
+              ["Email", student.companyEmail || student.email || "-"],
+              ["Contact/Fax No.", student.companyContactFax || "-"],
+              ["Mailing address", student.companyMailingAddress || "-"]
             ]}
           />
         </section>
@@ -289,7 +312,9 @@ export function StudentDetailPage() {
           items={related.certificates.map((certificate) => ({
             title: certificate.courseName,
             subtitle: `Reference ${certificate.referenceNumber}`,
-            meta: `Issued ${formatDate(certificate.issueDate)} · ${certificate.qrCodeValue}`,
+            meta: `Issued ${formatDate(certificate.issueDate)} · ${
+              certificate.qrCodeValue
+            }`,
             status: certificate.status
           }))}
         />
@@ -440,7 +465,7 @@ function FileList({
                   rel="noreferrer"
                   className="inline-flex items-center rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-bold text-brand-blue dark:border-white/10 dark:bg-white/5"
                 >
-                  Open PDF
+                  Download
                 </a>
               ) : null}
             </div>
