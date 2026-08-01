@@ -1,16 +1,26 @@
-import { ArrowLeft, GraduationCap, Loader2, Save } from "lucide-react";
-import { FormEvent, useState } from "react";
+import {
+  ArrowLeft,
+  FileUp,
+  GraduationCap,
+  Loader2,
+  Save,
+  X
+} from "lucide-react";
+import { FormEvent, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 
 import { PageHeader } from "../../components/ui/PageHeader";
 import { createStudentInApi } from "./student.service";
-import type {
-  CertificateStatus,
-  InvoicePdfStatus,
-  StudentStatus,
-  TrainingStatus
-} from "./student.types";
+import type { CertificateStatus, StudentStatus, TrainingStatus } from "./student.types";
+
+const courseOptions = [
+  "UATO Theory Course",
+  "Flight Instructor Check",
+  "UAPL Practical Training",
+  "UAPL Theory Refresher",
+  "Custom Course"
+];
 
 const studentStatuses: StudentStatus[] = [
   "Active",
@@ -28,68 +38,59 @@ const trainingStatuses: TrainingStatus[] = [
   "Suspended"
 ];
 
-const certificateStatuses: CertificateStatus[] = [
-  "Not Eligible",
-  "Ready",
-  "Generated",
-  "Issued",
-  "Expired"
-];
-
-const invoicePdfStatuses: InvoicePdfStatus[] = [
-  "No Invoice PDF",
-  "Uploaded",
-  "Missing",
-  "Needs Replacement"
-];
-
 type FormState = {
-  firstName: string;
-  lastName: string;
-  preferredName: string;
-  email: string;
-  phone: string;
-  nationality: string;
-  dateOfBirth: string;
+  fullName: string;
   idNumber: string;
+  dateOfBirth: string;
+  nationality: string;
+  phone: string;
   address: string;
-  emergencyContactName: string;
-  emergencyContactPhone: string;
+  companyName: string;
+  companyUen: string;
+  companyContactPerson: string;
+  companyEmail: string;
+  companyContactFax: string;
+  companyMailingAddress: string;
   status: StudentStatus;
   trainingStatus: TrainingStatus;
+  activeCourse: string;
   startDate: string;
   targetCompletionDate: string;
-  activeCourse: string;
   certificateStatus: CertificateStatus;
-  invoicePdfStatus: InvoicePdfStatus;
 };
 
 const initialForm: FormState = {
-  firstName: "",
-  lastName: "",
-  preferredName: "",
-  email: "",
-  phone: "",
-  nationality: "",
-  dateOfBirth: "",
+  fullName: "",
   idNumber: "",
+  dateOfBirth: "",
+  nationality: "",
+  phone: "",
   address: "",
-  emergencyContactName: "",
-  emergencyContactPhone: "",
+  companyName: "",
+  companyUen: "",
+  companyContactPerson: "",
+  companyEmail: "",
+  companyContactFax: "",
+  companyMailingAddress: "",
   status: "Active",
   trainingStatus: "Not Started",
+  activeCourse: "UATO Theory Course",
   startDate: "",
   targetCompletionDate: "",
-  activeCourse: "",
-  certificateStatus: "Not Eligible",
-  invoicePdfStatus: "No Invoice PDF"
+  certificateStatus: "Not Eligible"
 };
 
 export function NewStudentPage() {
   const navigate = useNavigate();
   const [form, setForm] = useState<FormState>(initialForm);
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+
+  const acceptedFileTypes = useMemo(
+    () => ".pdf,.doc,.docx,.jpg,.jpeg,.png",
+    []
+  );
 
   function updateField<Field extends keyof FormState>(
     field: Field,
@@ -101,11 +102,31 @@ export function NewStudentPage() {
     }));
   }
 
+  function handleFiles(files: FileList | null) {
+    if (!files) {
+      return;
+    }
+
+    const allowedExtensions = [".pdf", ".doc", ".docx", ".jpg", ".jpeg", ".png"];
+    const incomingFiles = Array.from(files).filter((file) => {
+      const lowerName = file.name.toLowerCase();
+      return allowedExtensions.some((extension) => lowerName.endsWith(extension));
+    });
+
+    setSelectedFiles((current) => [...current, ...incomingFiles]);
+  }
+
+  function removeFile(fileName: string) {
+    setSelectedFiles((current) =>
+      current.filter((file) => file.name !== fileName)
+    );
+  }
+
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
-    if (!form.firstName.trim() || !form.lastName.trim()) {
-      setErrorMessage("First name and last name are required.");
+    if (!form.fullName.trim()) {
+      setErrorMessage("Name as per NRIC/Passport is required.");
       return;
     }
 
@@ -113,23 +134,38 @@ export function NewStudentPage() {
     setErrorMessage("");
 
     try {
-      const response = await createStudentInApi({
-        ...form,
-        firstName: form.firstName.trim(),
-        lastName: form.lastName.trim(),
-        preferredName: form.preferredName.trim(),
-        email: form.email.trim(),
-        phone: form.phone.trim(),
-        nationality: form.nationality.trim(),
+      const nameParts = form.fullName.trim().split(/\s+/);
+      const firstName = nameParts[0] ?? form.fullName.trim();
+      const lastName =
+        nameParts.length > 1 ? nameParts.slice(1).join(" ") : "-";
+
+      await createStudentInApi({
+        firstName,
+        lastName,
+        preferredName: form.fullName.trim(),
         idNumber: form.idNumber.trim(),
+        dateOfBirth: form.dateOfBirth.trim(),
+        nationality: form.nationality.trim(),
+        phone: form.phone.trim(),
         address: form.address.trim(),
-        emergencyContactName: form.emergencyContactName.trim(),
-        emergencyContactPhone: form.emergencyContactPhone.trim(),
-        activeCourse: form.activeCourse.trim()
+        companyName: form.companyName.trim(),
+        companyUen: form.companyUen.trim(),
+        companyContactPerson: form.companyContactPerson.trim(),
+        companyEmail: form.companyEmail.trim(),
+        companyContactFax: form.companyContactFax.trim(),
+        companyMailingAddress: form.companyMailingAddress.trim(),
+        email: form.companyEmail.trim(),
+        status: form.status,
+        trainingStatus: form.trainingStatus,
+        activeCourse: form.activeCourse,
+        startDate: form.startDate,
+        targetCompletionDate: form.targetCompletionDate,
+        certificateStatus: form.certificateStatus,
+        invoicePdfStatus: "No Invoice PDF"
       });
 
       toast.success("Student created");
-      navigate(`/students/${response.student.studentId}`);
+      navigate("/students");
     } catch (error) {
       const message =
         error instanceof Error ? error.message : "Could not create student.";
@@ -145,7 +181,7 @@ export function NewStudentPage() {
       <PageHeader
         eyebrow="Student Information"
         title="Add Student"
-        description="Create a live student profile in Google Sheets. After saving, the system opens the new student profile hub."
+        description="Create a student profile using the registration form fields. File upload will connect to Google Drive in the next backend step."
         icon={GraduationCap}
         accentClassName="border-brand-mint"
       >
@@ -169,25 +205,28 @@ export function NewStudentPage() {
         ) : null}
 
         <div className="grid gap-6 xl:grid-cols-2">
-          <section>
-            <h3 className="text-xl font-black">Personal Details</h3>
+          <section className="rounded-3xl border border-slate-200 bg-white/75 p-5 dark:border-white/10 dark:bg-white/5">
+            <h3 className="text-xl font-black">Applicant Particulars</h3>
             <div className="mt-5 grid gap-4 sm:grid-cols-2">
+              <div className="sm:col-span-2">
+                <TextField
+                  label="Name as per NRIC/Passport"
+                  value={form.fullName}
+                  required
+                  onChange={(value) => updateField("fullName", value)}
+                />
+              </div>
               <TextField
-                label="First name"
-                value={form.firstName}
-                required
-                onChange={(value) => updateField("firstName", value)}
+                label="NRIC/Passport No. (Last 4 Digits)"
+                value={form.idNumber}
+                maxLength={4}
+                onChange={(value) => updateField("idNumber", value)}
               />
               <TextField
-                label="Last name"
-                value={form.lastName}
-                required
-                onChange={(value) => updateField("lastName", value)}
-              />
-              <TextField
-                label="Preferred name"
-                value={form.preferredName}
-                onChange={(value) => updateField("preferredName", value)}
+                label="Date of Birth (dd/mm/yyyy)"
+                value={form.dateOfBirth}
+                placeholder="dd/mm/yyyy"
+                onChange={(value) => updateField("dateOfBirth", value)}
               />
               <TextField
                 label="Nationality"
@@ -195,50 +234,13 @@ export function NewStudentPage() {
                 onChange={(value) => updateField("nationality", value)}
               />
               <TextField
-                label="Date of birth"
-                type="date"
-                value={form.dateOfBirth}
-                onChange={(value) => updateField("dateOfBirth", value)}
-              />
-              <TextField
-                label="ID number"
-                value={form.idNumber}
-                onChange={(value) => updateField("idNumber", value)}
-              />
-            </div>
-          </section>
-
-          <section>
-            <h3 className="text-xl font-black">Contact Details</h3>
-            <div className="mt-5 grid gap-4 sm:grid-cols-2">
-              <TextField
-                label="Email"
-                type="email"
-                value={form.email}
-                onChange={(value) => updateField("email", value)}
-              />
-              <TextField
-                label="Phone"
+                label="Contact No."
                 value={form.phone}
                 onChange={(value) => updateField("phone", value)}
               />
-              <TextField
-                label="Emergency contact name"
-                value={form.emergencyContactName}
-                onChange={(value) =>
-                  updateField("emergencyContactName", value)
-                }
-              />
-              <TextField
-                label="Emergency contact phone"
-                value={form.emergencyContactPhone}
-                onChange={(value) =>
-                  updateField("emergencyContactPhone", value)
-                }
-              />
               <div className="sm:col-span-2">
                 <TextAreaField
-                  label="Address"
+                  label="Residential Address"
                   value={form.address}
                   onChange={(value) => updateField("address", value)}
                 />
@@ -246,44 +248,86 @@ export function NewStudentPage() {
             </div>
           </section>
 
-          <section>
+          <section className="rounded-3xl border border-slate-200 bg-white/75 p-5 dark:border-white/10 dark:bg-white/5">
+            <h3 className="text-xl font-black">
+              For Company Sponsored Application Only
+            </h3>
+            <div className="mt-5 grid gap-4 sm:grid-cols-2">
+              <TextField
+                label="Company Name"
+                value={form.companyName}
+                onChange={(value) => updateField("companyName", value)}
+              />
+              <TextField
+                label="Company UEN No."
+                value={form.companyUen}
+                onChange={(value) => updateField("companyUen", value)}
+              />
+              <TextField
+                label="Contact Person"
+                value={form.companyContactPerson}
+                onChange={(value) =>
+                  updateField("companyContactPerson", value)
+                }
+              />
+              <TextField
+                label="Email"
+                type="email"
+                value={form.companyEmail}
+                onChange={(value) => updateField("companyEmail", value)}
+              />
+              <TextField
+                label="Contact/Fax No."
+                value={form.companyContactFax}
+                onChange={(value) => updateField("companyContactFax", value)}
+              />
+              <div className="sm:col-span-2">
+                <TextAreaField
+                  label="Mailing Address"
+                  value={form.companyMailingAddress}
+                  onChange={(value) =>
+                    updateField("companyMailingAddress", value)
+                  }
+                />
+              </div>
+            </div>
+          </section>
+
+          <section className="rounded-3xl border border-slate-200 bg-white/75 p-5 dark:border-white/10 dark:bg-white/5">
             <h3 className="text-xl font-black">Training Details</h3>
+            <p className="mt-2 text-sm leading-6 text-slate-500 dark:text-slate-300">
+              Student status is the profile lifecycle. Training status is the
+              course progress for the selected active course.
+            </p>
             <div className="mt-5 grid gap-4 sm:grid-cols-2">
               <SelectField
-                label="Student status"
+                label="Student Status"
                 value={form.status}
                 options={studentStatuses}
                 onChange={(value) => updateField("status", value as StudentStatus)}
               />
               <SelectField
-                label="Training status"
+                label="Training Status"
                 value={form.trainingStatus}
                 options={trainingStatuses}
                 onChange={(value) =>
                   updateField("trainingStatus", value as TrainingStatus)
                 }
               />
-              <TextField
-                label="Active course"
+              <SelectField
+                label="Active Course"
                 value={form.activeCourse}
+                options={courseOptions}
                 onChange={(value) => updateField("activeCourse", value)}
               />
-              <SelectField
-                label="Certificate status"
-                value={form.certificateStatus}
-                options={certificateStatuses}
-                onChange={(value) =>
-                  updateField("certificateStatus", value as CertificateStatus)
-                }
-              />
               <TextField
-                label="Start date"
+                label="Start Date"
                 type="date"
                 value={form.startDate}
                 onChange={(value) => updateField("startDate", value)}
               />
               <TextField
-                label="Target completion date"
+                label="Target Completion Date"
                 type="date"
                 value={form.targetCompletionDate}
                 onChange={(value) => updateField("targetCompletionDate", value)}
@@ -291,26 +335,62 @@ export function NewStudentPage() {
             </div>
           </section>
 
-          <section>
-            <h3 className="text-xl font-black">Document Status</h3>
-            <div className="mt-5 grid gap-4">
-              <SelectField
-                label="Invoice PDF status"
-                value={form.invoicePdfStatus}
-                options={invoicePdfStatuses}
-                onChange={(value) =>
-                  updateField("invoicePdfStatus", value as InvoicePdfStatus)
-                }
+          <section className="rounded-3xl border border-slate-200 bg-white/75 p-5 dark:border-white/10 dark:bg-white/5">
+            <h3 className="text-xl font-black">Registration Files</h3>
+            <p className="mt-2 text-sm leading-6 text-slate-500 dark:text-slate-300">
+              Accepted files: MS Word, PDF, JPG, and PNG. Google Drive upload
+              will be connected in the next backend step.
+            </p>
+
+            <label className="mt-5 flex cursor-pointer flex-col items-center justify-center rounded-3xl border border-dashed border-brand-blue/35 bg-brand-sky/10 px-5 py-8 text-center transition hover:border-brand-blue hover:bg-brand-sky/15 dark:border-brand-sky/30 dark:bg-white/5">
+              <FileUp size={28} className="text-brand-blue" />
+              <span className="mt-3 text-sm font-black text-slate-900 dark:text-white">
+                Choose files
+              </span>
+              <span className="mt-1 text-xs font-semibold text-slate-500 dark:text-slate-300">
+                PDF, DOC, DOCX, JPG, JPEG, PNG
+              </span>
+              <input
+                type="file"
+                multiple
+                accept={acceptedFileTypes}
+                onChange={(event) => handleFiles(event.target.files)}
+                className="hidden"
               />
-              <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600 dark:border-white/10 dark:bg-white/5 dark:text-slate-300">
-                Invoice PDFs are uploaded from the finance system later. This
-                form only creates the student profile.
+            </label>
+
+            {selectedFiles.length ? (
+              <div className="mt-4 space-y-2">
+                {selectedFiles.map((file) => (
+                  <div
+                    key={file.name}
+                    className="flex items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm dark:border-white/10 dark:bg-white/5"
+                  >
+                    <span className="min-w-0 truncate font-bold text-slate-700 dark:text-slate-200">
+                      {file.name}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => removeFile(file.name)}
+                      className="rounded-xl p-2 text-slate-400 transition hover:bg-rose-50 hover:text-rose-600 dark:hover:bg-rose-400/10 dark:hover:text-rose-200"
+                      aria-label={`Remove ${file.name}`}
+                    >
+                      <X size={16} />
+                    </button>
+                  </div>
+                ))}
               </div>
-            </div>
+            ) : null}
           </section>
         </div>
 
-        <div className="mt-8 flex justify-end">
+        <div className="mt-8 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+          <Link
+            to="/students"
+            className="inline-flex items-center justify-center rounded-2xl border border-slate-200 bg-white px-6 py-3 text-sm font-bold text-slate-600 shadow-sm transition hover:text-brand-blue dark:border-white/10 dark:bg-white/5 dark:text-slate-200"
+          >
+            Cancel
+          </Link>
           <button
             type="submit"
             disabled={isSubmitting}
@@ -334,6 +414,8 @@ type TextFieldProps = {
   value: string;
   type?: string;
   required?: boolean;
+  maxLength?: number;
+  placeholder?: string;
   onChange: (value: string) => void;
 };
 
@@ -342,6 +424,8 @@ function TextField({
   value,
   type = "text",
   required,
+  maxLength,
+  placeholder,
   onChange
 }: TextFieldProps) {
   return (
@@ -353,9 +437,11 @@ function TextField({
       <input
         type={type}
         required={required}
+        maxLength={maxLength}
+        placeholder={placeholder}
         value={value}
         onChange={(event) => onChange(event.target.value)}
-        className="mt-2 w-full rounded-2xl border border-slate-200 bg-white/80 px-4 py-3 text-sm outline-none transition focus:border-brand-blue focus:ring-4 focus:ring-brand-sky/10 dark:border-white/10 dark:bg-white/5"
+        className="mt-2 w-full rounded-2xl border border-slate-200 bg-white/80 px-4 py-3 text-sm outline-none transition placeholder:text-slate-400 focus:border-brand-blue focus:ring-4 focus:ring-brand-sky/10 dark:border-white/10 dark:bg-white/5"
       />
     </label>
   );
@@ -377,7 +463,7 @@ function TextAreaField({ label, value, onChange }: TextAreaFieldProps) {
         value={value}
         onChange={(event) => onChange(event.target.value)}
         rows={4}
-        className="mt-2 w-full rounded-2xl border border-slate-200 bg-white/80 px-4 py-3 text-sm outline-none transition focus:border-brand-blue focus:ring-4 focus:ring-brand-sky/10 dark:border-white/10 dark:bg-white/5"
+        className="mt-2 w-full resize-none rounded-2xl border border-slate-200 bg-white/80 px-4 py-3 text-sm outline-none transition focus:border-brand-blue focus:ring-4 focus:ring-brand-sky/10 dark:border-white/10 dark:bg-white/5"
       />
     </label>
   );
