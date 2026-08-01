@@ -37,13 +37,21 @@ const tabs = [
 type TabId = (typeof tabs)[number]["id"];
 
 function formatDate(value?: string) {
-  if (!value) return "-";
+  if (!value || String(value).trim() === "") {
+    return "-";
+  }
+
+  const parsedDate = new Date(value);
+
+  if (Number.isNaN(parsedDate.getTime())) {
+    return String(value);
+  }
 
   return new Intl.DateTimeFormat("en-SG", {
     day: "2-digit",
     month: "short",
     year: "numeric"
-  }).format(new Date(value));
+  }).format(parsedDate);
 }
 
 export function StudentDetailPage() {
