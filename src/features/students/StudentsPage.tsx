@@ -79,10 +79,24 @@ function toNumber(value: unknown) {
   return Number.isFinite(numberValue) ? numberValue : 0;
 }
 
-function fullName(student: Student) {
-  return [student.firstName, student.lastName]
+function studentName(student: Student) {
+  const legacyName = [student.firstName, student.lastName]
     .filter((part) => part && part !== "-")
     .join(" ");
+
+  return student.nameAsPerId || student.preferredName || legacyName || "-";
+}
+
+function contactNumber(student: Student) {
+  return String(student.contactNumber || student.phone || "");
+}
+
+function studentStatus(student: Student) {
+  return student.studentStatus || student.status;
+}
+
+function uploadedFileCount(student: Student) {
+  return toNumber(student.uploadedFileCount ?? student.uploadedPdfCount);
 }
 
 export function StudentsPage() {
@@ -128,16 +142,22 @@ export function StudentsPage() {
     const search = filters.search.trim().toLowerCase();
 
     return students.filter((student) => {
-      const name = fullName(student).toLowerCase();
-      const matchesSearch =
-        !search ||
-        name.includes(search) ||
-        student.studentNumber.toLowerCase().includes(search) ||
-        student.email.toLowerCase().includes(search) ||
-        student.activeCourse.toLowerCase().includes(search);
+      const searchableValues = [
+        studentName(student),
+        student.studentNumber,
+        student.email,
+        student.companyEmail,
+        contactNumber(student),
+        student.activeCourse
+      ]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase();
+
+      const matchesSearch = !search || searchableValues.includes(search);
 
       const matchesStudentStatus =
-        filters.status === "All" || student.status === filters.status;
+        filters.status === "All" || studentStatus(student) === filters.status;
 
       const matchesTrainingStatus =
         filters.trainingStatus === "All" ||
@@ -157,7 +177,9 @@ export function StudentsPage() {
   }, [filters, students]);
 
   const summary = useMemo(() => {
-    const active = students.filter((student) => student.status === "Active").length;
+    const active = students.filter(
+      (student) => studentStatus(student) === "Active"
+    ).length;
     const readyCertificates = students.filter(
       (student) => student.certificateStatus === "Ready"
     ).length;
@@ -165,12 +187,12 @@ export function StudentsPage() {
       (total, student) => total + toNumber(student.invoicePdfCount),
       0
     );
-    const pdfCount = students.reduce(
-      (total, student) => total + toNumber(student.uploadedPdfCount),
+    const fileCount = students.reduce(
+      (total, student) => total + uploadedFileCount(student),
       0
     );
 
-    return { active, readyCertificates, invoicePdfs, pdfCount };
+    return { active, readyCertificates, invoicePdfs, fileCount };
   }, [students]);
 
   return (
@@ -195,7 +217,7 @@ export function StudentsPage() {
         <SummaryCard label="Active Students" value={String(summary.active)} icon={GraduationCap} tone="mint" />
         <SummaryCard label="Certificates Ready" value={String(summary.readyCertificates)} icon={QrCode} tone="emerald" />
         <SummaryCard label="Invoice PDFs" value={String(summary.invoicePdfs)} icon={FileText} tone="amber" />
-        <SummaryCard label="Uploaded PDFs" value={String(summary.pdfCount)} icon={FileText} tone="blue" />
+        <SummaryCard label="Uploaded Files" value={String(summary.fileCount)} icon={FileText} tone="blue" />
       </section>
 
       <section className="rounded-3xl border border-white/70 bg-white/86 p-5 shadow-panel backdrop-blur-xl dark:border-white/10 dark:bg-white/7">
@@ -211,7 +233,7 @@ export function StudentsPage() {
                 }))
               }
               className="w-full bg-transparent text-sm outline-none placeholder:text-slate-400"
-              placeholder="Search name, student number, email, or course..."
+              placeholder="Search name, student number, email, phone, or course..."
             />
           </label>
 
@@ -301,7 +323,7 @@ export function StudentsPage() {
                         to={`/students/${student.studentId}`}
                         className="font-bold text-brand-blue hover:text-brand-navy dark:hover:text-white"
                       >
-                        {fullName(student)}
+                        {studentName(student)}
                       </Link>
                       <div className="mt-1 text-slate-500 dark:text-slate-400">
                         {student.studentNumber}
@@ -309,8 +331,11 @@ export function StudentsPage() {
                       <div className="mt-1 text-slate-500 dark:text-slate-400">
                         {student.email || student.companyEmail || "No email"}
                       </div>
+                      <div className="mt-1 text-slate-500 dark:text-slate-400">
+                        {contactNumber(student) || "No phone"}
+                      </div>
                       <div className="mt-3">
-                        <StatusBadge value={student.status} />
+                        <StatusBadge value={studentStatus(student)} />
                       </div>
                     </td>
                     <td className="px-5 py-5">
@@ -347,7 +372,7 @@ export function StudentsPage() {
                     <td className="px-5 py-5">
                       <div className="flex items-center gap-2 font-semibold">
                         <FileText size={16} className="text-brand-blue" />
-                        {toNumber(student.uploadedPdfCount)} PDFs
+                        {uploadedFileCount(student)} files
                       </div>
                       <div className="mt-2 flex items-center gap-2 text-slate-500 dark:text-slate-400">
                         <CalendarCheck size={16} />
@@ -384,12 +409,15 @@ export function StudentsPage() {
               >
                 <div className="flex items-start justify-between gap-4">
                   <div>
-                    <p className="text-lg font-black">{fullName(student)}</p>
+                    <p className="text-lg font-black">{studentName(student)}</p>
                     <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
                       {student.studentNumber}
                     </p>
+                    <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+                      {contactNumber(student) || "No phone"}
+                    </p>
                   </div>
-                  <StatusBadge value={student.status} />
+                  <StatusBadge value={studentStatus(student)} />
                 </div>
 
                 <div className="mt-4 space-y-3 text-sm">
@@ -414,8 +442,8 @@ export function StudentsPage() {
                       <StatusBadge value={student.invoicePdfStatus} />
                     </div>
                     <Detail
-                      label="PDFs"
-                      value={String(toNumber(student.uploadedPdfCount))}
+                      label="Files"
+                      value={String(uploadedFileCount(student))}
                     />
                   </div>
                 </div>
