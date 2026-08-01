@@ -2,6 +2,7 @@ import {
   ArrowLeft,
   BadgeCheck,
   BookOpenCheck,
+  Download,
   FileArchive,
   FileText,
   GraduationCap,
@@ -21,6 +22,8 @@ import { certificateRecords } from "../certificates/certificate.data";
 import { managedFiles } from "../file-manager/file.data";
 import { trainingEnrolments } from "../training-enrolments/enrolment.data";
 import { trainingRecords } from "../training-records/training-record.data";
+import { listStudentFilesFromApi } from "./student-file.service";
+import type { StudentFile } from "./student-file.service";
 import { getStudentFromApi } from "./student.service";
 import type { Student } from "./student.types";
 
@@ -87,8 +90,11 @@ function companyContactNumber(student: Student) {
 export function StudentDetailPage() {
   const { studentId } = useParams();
   const [student, setStudent] = useState<Student | null>(null);
+  const [studentFiles, setStudentFiles] = useState<StudentFile[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isFilesLoading, setIsFilesLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+  const [filesErrorMessage, setFilesErrorMessage] = useState("");
   const [activeTab, setActiveTab] = useState<TabId>("profile");
 
   useEffect(() => {
@@ -102,7 +108,9 @@ export function StudentDetailPage() {
     }
 
     setIsLoading(true);
+    setIsFilesLoading(true);
     setErrorMessage("");
+    setFilesErrorMessage("");
 
     getStudentFromApi(studentId)
       .then((response) => {
@@ -122,6 +130,24 @@ export function StudentDetailPage() {
         }
       });
 
+    listStudentFilesFromApi(studentId)
+      .then((response) => {
+        if (mounted) {
+          setStudentFiles(response.files);
+        }
+      })
+      .catch((error: Error) => {
+        if (mounted) {
+          setStudentFiles([]);
+          setFilesErrorMessage(error.message);
+        }
+      })
+      .finally(() => {
+        if (mounted) {
+          setIsFilesLoading(false);
+        }
+      });
+
     return () => {
       mounted = false;
     };
@@ -132,15 +158,10 @@ export function StudentDetailPage() {
       return {
         enrolments: [],
         records: [],
-        files: [],
         certificates: [],
         invoiceFiles: []
       };
     }
-
-    const files = managedFiles.filter(
-      (file) => file.studentId === student.studentId
-    );
 
     return {
       enrolments: trainingEnrolments.filter(
@@ -149,11 +170,13 @@ export function StudentDetailPage() {
       records: trainingRecords.filter(
         (record) => record.studentId === student.studentId
       ),
-      files,
       certificates: certificateRecords.filter(
         (certificate) => certificate.studentId === student.studentId
       ),
-      invoiceFiles: files.filter((file) => file.module === "Invoice PDF")
+      invoiceFiles: managedFiles.filter(
+        (file) =>
+          file.studentId === student.studentId && file.module === "Invoice PDF"
+      )
     };
   }, [student]);
 
@@ -230,7 +253,7 @@ export function StudentDetailPage() {
           <div className="grid gap-3 sm:grid-cols-3 xl:min-w-[420px]">
             <MiniStat label="Enrolments" value={String(related.enrolments.length)} />
             <MiniStat label="Records" value={String(related.records.length)} />
-            <MiniStat label="Files" value={String(related.files.length)} />
+            <MiniStat label="Files" value={String(studentFiles.length)} />
           </div>
         </div>
       </section>
@@ -324,9 +347,11 @@ export function StudentDetailPage() {
       )}
 
       {activeTab === "files" && (
-        <FileList
-          emptyText="No live files are connected yet. This tab will use the Files API next."
-          files={related.files}
+        <StudentFileList
+          emptyText="No uploaded student files yet."
+          files={studentFiles}
+          isLoading={isFilesLoading}
+          errorMessage={filesErrorMessage}
         />
       )}
 
@@ -441,6 +466,87 @@ function RecordList({
               </p>
             </div>
             <StatusBadge value={item.status} />
+          </div>
+        </article>
+      ))}
+    </section>
+  );
+}
+
+function StudentFileList({
+  emptyText,
+  files,
+  isLoading,
+  errorMessage
+}: {
+  emptyText: string;
+  files: StudentFile[];
+  isLoading: boolean;
+  errorMessage: string;
+}) {
+  if (isLoading) {
+    return (
+      <section className="rounded-3xl border border-white/70 bg-white/86 p-6 text-center shadow-panel backdrop-blur-xl dark:border-white/10 dark:bg-white/7">
+        <Loader2 className="mx-auto animate-spin text-brand-blue" size={28} />
+        <p className="mt-3 font-bold text-slate-600 dark:text-slate-300">
+          Loading student files
+        </p>
+      </section>
+    );
+  }
+
+  if (errorMessage) {
+    return (
+      <section className="rounded-3xl border border-rose-200 bg-rose-50/80 p-6 shadow-panel backdrop-blur-xl dark:border-rose-400/20 dark:bg-rose-400/10">
+        <p className="font-bold text-rose-700 dark:text-rose-200">
+          Could not load files
+        </p>
+        <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
+          {errorMessage}
+        </p>
+      </section>
+    );
+  }
+
+  if (files.length === 0) {
+    return (
+      <section className="rounded-3xl border border-white/70 bg-white/86 p-6 shadow-panel backdrop-blur-xl dark:border-white/10 dark:bg-white/7">
+        <p className="text-slate-500 dark:text-slate-400">{emptyText}</p>
+      </section>
+    );
+  }
+
+  return (
+    <section className="grid gap-4">
+      {files.map((file) => (
+        <article
+          key={file.fileId}
+          className="rounded-3xl border border-white/70 bg-white/86 p-5 shadow-panel backdrop-blur-xl dark:border-white/10 dark:bg-white/7"
+        >
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+            <div className="min-w-0">
+              <h3 className="truncate font-black">{file.fileName}</h3>
+              <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+                {file.module} · Uploaded by {file.uploadedBy || "unknown"}
+              </p>
+              <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
+                Uploaded {formatDate(file.uploadedAt)}
+              </p>
+              {file.notes ? (
+                <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
+                  {file.notes}
+                </p>
+              ) : null}
+            </div>
+            <a
+              href={file.driveUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex shrink-0 items-center justify-center gap-2 rounded-2xl bg-brand-blue px-4 py-3 text-sm font-black text-white shadow-glow transition hover:bg-brand-navy"
+            >
+              <Download size={17} />
+              Download
+            </a>
           </div>
         </article>
       ))}
