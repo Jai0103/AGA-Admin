@@ -41,9 +41,21 @@ export type CreateStudentPayload = {
   invoicePdfStatus?: InvoicePdfStatus;
   invoicePdfCount?: number;
   uploadedPdfCount?: number;
+  qrCodeValue?: string;
+};
+
+export type UpdateStudentPayload = CreateStudentPayload & {
+  studentId: string;
+  studentNumber?: string;
+  createdAt?: string;
+  createdBy?: string;
 };
 
 export type CreateStudentResponse = {
+  student: Student;
+};
+
+export type UpdateStudentResponse = {
   student: Student;
 };
 
@@ -57,4 +69,8 @@ export function getStudentFromApi(studentId: string) {
 
 export function createStudentInApi(payload: CreateStudentPayload) {
   return apiPost<CreateStudentResponse>("createStudent", payload);
+}
+
+export function updateStudentInApi(payload: UpdateStudentPayload) {
+  return apiPost<UpdateStudentResponse>("updateStudent", payload);
 }
