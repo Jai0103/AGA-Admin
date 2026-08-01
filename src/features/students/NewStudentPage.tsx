@@ -229,7 +229,16 @@ export function NewStudentPage() {
       return;
     }
 
-    setSelectedFiles((current) => [...current, ...validFiles]);
+    setSelectedFiles((current) => {
+      const existingIds = new Set(current.map((item) => item.id));
+      const newFiles = validFiles.filter((item) => !existingIds.has(item.id));
+
+      if (newFiles.length < validFiles.length) {
+        toast.info("Duplicate file skipped.");
+      }
+
+      return [...current, ...newFiles];
+    });
   }
 
   function removeFile(fileId: string) {
@@ -590,7 +599,10 @@ export function NewStudentPage() {
                 type="file"
                 multiple
                 accept={acceptedFileTypes}
-                onChange={(event) => handleFiles(event.target.files)}
+                onChange={(event) => {
+                  handleFiles(event.target.files);
+                  event.currentTarget.value = "";
+                }}
                 className="hidden"
               />
             </label>
