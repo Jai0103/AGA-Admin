@@ -195,10 +195,11 @@ export function NewStudentPage() {
       return;
     }
 
+    const pickedAt = Date.now();
     const validFiles: SelectedRegistrationFile[] = [];
     const rejectedFiles: string[] = [];
 
-    Array.from(files).forEach((file) => {
+    Array.from(files).forEach((file, index) => {
       const lowerName = file.name.toLowerCase();
       const isAllowedType = allowedUploadExtensions.some((extension) =>
         lowerName.endsWith(extension)
@@ -215,7 +216,9 @@ export function NewStudentPage() {
       }
 
       validFiles.push({
-        id: `${file.name}-${file.lastModified}-${file.size}`,
+        id: `${pickedAt}-${index}-${file.name}-${Math.random()
+          .toString(36)
+          .slice(2)}`,
         file,
         module: "Registration Form"
       });
@@ -229,16 +232,7 @@ export function NewStudentPage() {
       return;
     }
 
-    setSelectedFiles((current) => {
-      const existingIds = new Set(current.map((item) => item.id));
-      const newFiles = validFiles.filter((item) => !existingIds.has(item.id));
-
-      if (newFiles.length < validFiles.length) {
-        toast.info("Duplicate file skipped.");
-      }
-
-      return [...current, ...newFiles];
-    });
+    setSelectedFiles((current) => current.concat(validFiles));
   }
 
   function removeFile(fileId: string) {
