@@ -23,8 +23,6 @@ import {
   listFilesFromApi
 } from "../students/student-file.service";
 import type { StudentFile } from "../students/student-file.service";
-import { listStudentsFromApi } from "../students/student.service";
-import type { Student } from "../students/student.types";
 
 const fileModules = [
   "All",
@@ -66,18 +64,6 @@ function formatDate(value?: string) {
   }).format(parsedDate);
 }
 
-function studentName(student?: Student) {
-  if (!student) {
-    return "Unknown student";
-  }
-
-  const legacyName = [student.firstName, student.lastName]
-    .filter((part) => part && part !== "-")
-    .join(" ");
-
-  return student.nameAsPerId || student.preferredName || legacyName || "-";
-}
-
 function previewUrl(file: StudentFile) {
   return file.driveFileId
     ? `https://drive.google.com/file/d/${file.driveFileId}/preview`
@@ -86,7 +72,6 @@ function previewUrl(file: StudentFile) {
 
 export function FileManagerPage() {
   const [files, setFiles] = useState<StudentFile[]>([]);
-  const [students, setStudents] = useState<Student[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
   const [previewFile, setPreviewFile] = useState<StudentFile | null>(null);
@@ -104,11 +89,10 @@ export function FileManagerPage() {
     setIsLoading(true);
     setErrorMessage("");
 
-    Promise.all([listFilesFromApi(), listStudentsFromApi()])
-      .then(([filesResponse, studentsResponse]) => {
+    listFilesFromApi()
+      .then((filesResponse) => {
         if (mounted) {
           setFiles(filesResponse.files);
-          setStudents(studentsResponse.students);
         }
       })
       .catch((error: Error) => {
@@ -127,37 +111,40 @@ export function FileManagerPage() {
     };
   }, []);
 
-  const studentById = useMemo(() => {
-    return new Map(students.map((student) => [student.studentId, student]));
-  }, [students]);
-
   const filteredFiles = useMemo(() => {
     const search = filters.search.trim().toLowerCase();
 
-    return files.filter((file) => {
-      const student = studentById.get(file.studentId);
-      const searchableValues = [
-        file.fileName,
-        file.fileId,
-        file.module,
-        file.mimeType,
-        file.uploadedBy,
-        file.notes,
-        file.studentId,
-        student?.studentNumber,
-        studentName(student)
-      ]
-        .filter(Boolean)
-        .join(" ")
-        .toLowerCase();
+    return files
+      .slice()
+      .sort((first, second) => {
+        return (
+          new Date(second.uploadedAt || 0).getTime() -
+          new Date(first.uploadedAt || 0).getTime()
+        );
+      })
+      .filter((file) => {
+        const searchableValues = [
+          file.fileName,
+          file.fileId,
+          file.module,
+          file.mimeType,
+          file.uploadedBy,
+          file.notes,
+          file.studentId,
+          file.studentNumber,
+          file.studentName
+        ]
+          .filter(Boolean)
+          .join(" ")
+          .toLowerCase();
 
-      const matchesSearch = !search || searchableValues.includes(search);
-      const matchesModule =
-        filters.module === "All" || file.module === filters.module;
+        const matchesSearch = !search || searchableValues.includes(search);
+        const matchesModule =
+          filters.module === "All" || file.module === filters.module;
 
-      return matchesSearch && matchesModule;
-    });
-  }, [files, filters, studentById]);
+        return matchesSearch && matchesModule;
+      });
+  }, [files, filters]);
 
   const summary = useMemo(() => {
     const uniqueStudents = new Set(files.map((file) => file.studentId)).size;
@@ -293,8 +280,6 @@ export function FileManagerPage() {
               </thead>
               <tbody className="divide-y divide-slate-200 dark:divide-white/10">
                 {filteredFiles.map((file) => {
-                  const student = studentById.get(file.studentId);
-
                   return (
                     <tr key={file.fileId} className="align-top">
                       <td className="px-5 py-5">
@@ -311,10 +296,10 @@ export function FileManagerPage() {
                           to={`/students/${file.studentId}`}
                           className="font-bold text-brand-blue transition hover:text-brand-navy dark:hover:text-brand-sky"
                         >
-                          {studentName(student)}
+                          {file.studentName || "Unknown student"}
                         </Link>
                         <div className="mt-1 text-slate-500 dark:text-slate-400">
-                          {student?.studentNumber || file.studentId}
+                          {file.studentNumber || file.studentId}
                         </div>
                       </td>
                       <td className="px-5 py-5">
@@ -364,8 +349,6 @@ export function FileManagerPage() {
 
           <section className="grid gap-4 xl:hidden">
             {filteredFiles.map((file) => {
-              const student = studentById.get(file.studentId);
-
               return (
                 <article
                   key={file.fileId}
@@ -375,7 +358,7 @@ export function FileManagerPage() {
                     <div className="min-w-0">
                       <p className="truncate font-black">{file.fileName}</p>
                       <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-                        {studentName(student)} - {file.module || "Other"}
+                        {file.studentName || "Unknown student"} - {file.module || "Other"}
                       </p>
                     </div>
                     <span className="shrink-0 rounded-full bg-brand-sky/15 px-3 py-1 text-xs font-black text-brand-blue">
