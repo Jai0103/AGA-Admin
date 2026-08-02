@@ -3,6 +3,8 @@ import { apiGet, apiPost } from "../../services/api/client";
 export type StudentFile = {
   fileId: string;
   studentId: string;
+  studentName?: string;
+  studentNumber?: string;
   enrolmentId?: string;
   module: string;
   fileName: string;
