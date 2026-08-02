@@ -171,6 +171,7 @@ export function StudentDetailPage() {
   const [filesErrorMessage, setFilesErrorMessage] = useState("");
   const [uploadErrorMessage, setUploadErrorMessage] = useState("");
   const [uploadSuccessMessage, setUploadSuccessMessage] = useState("");
+  const [uploadProgressMessage, setUploadProgressMessage] = useState("");
   const [queuedUploadFiles, setQueuedUploadFiles] = useState<
     QueuedStudentUploadFile[]
   >([]);
@@ -284,9 +285,14 @@ export function StudentDetailPage() {
     setIsUploading(true);
     setUploadErrorMessage("");
     setUploadSuccessMessage("");
+    setUploadProgressMessage("");
 
     try {
-      for (const item of queuedUploadFiles) {
+      for (const [index, item] of queuedUploadFiles.entries()) {
+        setUploadProgressMessage(
+          `Uploading ${index + 1} of ${queuedUploadFiles.length}: ${item.file.name}`
+        );
+
         const base64Data = await readFileAsBase64(item.file);
 
         await uploadStudentFileToApi({
@@ -302,6 +308,7 @@ export function StudentDetailPage() {
       const uploadedCount = queuedUploadFiles.length;
       setQueuedUploadFiles([]);
       setUploadNotes("");
+      setUploadProgressMessage("");
       setUploadSuccessMessage(
         uploadedCount === 1
           ? "File uploaded successfully."
@@ -309,6 +316,7 @@ export function StudentDetailPage() {
       );
       await loadStudentFiles();
     } catch (error) {
+      setUploadProgressMessage("");
       setUploadErrorMessage(
         error instanceof Error ? error.message : "Could not upload file."
       );
@@ -575,6 +583,7 @@ export function StudentDetailPage() {
             queuedFiles={queuedUploadFiles}
             uploadNotes={uploadNotes}
             uploadErrorMessage={uploadErrorMessage}
+            uploadProgressMessage={uploadProgressMessage}
             uploadSuccessMessage={uploadSuccessMessage}
             onFilesChange={queueFiles}
             onModuleChange={updateQueuedFileModule}
@@ -686,6 +695,7 @@ type StudentFileUploadCardProps = {
   queuedFiles: QueuedStudentUploadFile[];
   uploadNotes: string;
   uploadErrorMessage: string;
+  uploadProgressMessage: string;
   uploadSuccessMessage: string;
   onFilesChange: (files: FileList | null) => void;
   onModuleChange: (
@@ -702,6 +712,7 @@ function StudentFileUploadCard({
   queuedFiles,
   uploadNotes,
   uploadErrorMessage,
+  uploadProgressMessage,
   uploadSuccessMessage,
   onFilesChange,
   onModuleChange,
@@ -822,6 +833,15 @@ function StudentFileUploadCard({
         <p className="mt-4 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-bold text-rose-700 dark:border-rose-400/20 dark:bg-rose-400/10 dark:text-rose-200">
           {uploadErrorMessage}
         </p>
+      ) : null}
+
+      {uploadProgressMessage ? (
+        <div className="mt-4 rounded-2xl border border-brand-blue/20 bg-brand-blue/5 px-4 py-3 text-sm font-bold text-brand-blue dark:border-brand-sky/20 dark:bg-brand-sky/10 dark:text-brand-sky">
+          <div className="flex items-center gap-2">
+            <Loader2 className="animate-spin" size={16} />
+            <span className="truncate">{uploadProgressMessage}</span>
+          </div>
+        </div>
       ) : null}
 
       {uploadSuccessMessage ? (
