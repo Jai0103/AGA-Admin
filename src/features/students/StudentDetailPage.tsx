@@ -66,6 +66,42 @@ const allowedMimeTypes = new Set([
 
 const maxUploadSizeBytes = 8 * 1024 * 1024;
 
+type QueuedStudentUploadFile = {
+  id: string;
+  file: File;
+  module: (typeof fileModules)[number];
+};
+
+function mimeTypeForFile(file: File) {
+  if (file.type) {
+    return file.type;
+  }
+
+  const lowerName = file.name.toLowerCase();
+
+  if (lowerName.endsWith(".pdf")) {
+    return "application/pdf";
+  }
+
+  if (lowerName.endsWith(".doc")) {
+    return "application/msword";
+  }
+
+  if (lowerName.endsWith(".docx")) {
+    return "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+  }
+
+  if (lowerName.endsWith(".jpg") || lowerName.endsWith(".jpeg")) {
+    return "image/jpeg";
+  }
+
+  if (lowerName.endsWith(".png")) {
+    return "image/png";
+  }
+
+  return "application/octet-stream";
+}
+
 type TabId = (typeof tabs)[number]["id"];
 
 function formatDate(value?: string) {
@@ -135,14 +171,14 @@ export function StudentDetailPage() {
   const [filesErrorMessage, setFilesErrorMessage] = useState("");
   const [uploadErrorMessage, setUploadErrorMessage] = useState("");
   const [uploadSuccessMessage, setUploadSuccessMessage] = useState("");
-  const [selectedModule, setSelectedModule] =
-    useState<(typeof fileModules)[number]>("Registration Form");
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [queuedUploadFiles, setQueuedUploadFiles] = useState<
+    QueuedStudentUploadFile[]
+  >([]);
   const [previewFile, setPreviewFile] = useState<StudentFile | null>(null);
   const [deleteFile, setDeleteFile] = useState<StudentFile | null>(null);
   const [isDeletingFile, setIsDeletingFile] = useState(false);
   const [deletedFileName, setDeletedFileName] = useState("");
-  const [fileNotes, setFileNotes] = useState("");
+  const [uploadNotes, setUploadNotes] = useState("");
   const [activeTab, setActiveTab] = useState<TabId>("profile");
 
   const loadStudentFiles = useCallback(() => {
@@ -240,18 +276,8 @@ export function StudentDetailPage() {
       return;
     }
 
-    if (!selectedFile) {
-      setUploadErrorMessage("Choose a file before uploading.");
-      return;
-    }
-
-    if (!allowedMimeTypes.has(selectedFile.type)) {
-      setUploadErrorMessage("Allowed files: PDF, Word DOC/DOCX, JPG, or PNG.");
-      return;
-    }
-
-    if (selectedFile.size > maxUploadSizeBytes) {
-      setUploadErrorMessage("Maximum upload size is 8 MB.");
+    if (queuedUploadFiles.length === 0) {
+      setUploadErrorMessage("Choose at least one file before uploading.");
       return;
     }
 
@@ -260,20 +286,27 @@ export function StudentDetailPage() {
     setUploadSuccessMessage("");
 
     try {
-      const base64Data = await readFileAsBase64(selectedFile);
+      for (const item of queuedUploadFiles) {
+        const base64Data = await readFileAsBase64(item.file);
 
-      await uploadStudentFileToApi({
-        studentId,
-        module: selectedModule,
-        fileName: selectedFile.name,
-        mimeType: selectedFile.type,
-        base64Data,
-        notes: fileNotes.trim()
-      });
+        await uploadStudentFileToApi({
+          studentId,
+          module: item.module,
+          fileName: item.file.name,
+          mimeType: mimeTypeForFile(item.file),
+          base64Data,
+          notes: uploadNotes.trim()
+        });
+      }
 
-      setSelectedFile(null);
-      setFileNotes("");
-      setUploadSuccessMessage("File uploaded successfully.");
+      const uploadedCount = queuedUploadFiles.length;
+      setQueuedUploadFiles([]);
+      setUploadNotes("");
+      setUploadSuccessMessage(
+        uploadedCount === 1
+          ? "File uploaded successfully."
+          : `${uploadedCount} files uploaded successfully.`
+      );
       await loadStudentFiles();
     } catch (error) {
       setUploadErrorMessage(
@@ -282,6 +315,67 @@ export function StudentDetailPage() {
     } finally {
       setIsUploading(false);
     }
+  }
+
+  function queueFiles(files: FileList | null) {
+    if (!files) {
+      return;
+    }
+
+    const pickedAt = Date.now();
+    const incomingFiles: QueuedStudentUploadFile[] = [];
+
+    Array.from(files).forEach((file, index) => {
+      const mimeType = mimeTypeForFile(file);
+
+      if (!allowedMimeTypes.has(mimeType)) {
+        setUploadErrorMessage("Allowed files: PDF, Word DOC/DOCX, JPG, or PNG.");
+        return;
+      }
+
+      if (file.size > maxUploadSizeBytes) {
+        setUploadErrorMessage("Maximum upload size is 8 MB.");
+        return;
+      }
+
+      incomingFiles.push({
+        id: `${pickedAt}-${index}-${file.name}-${Math.random()
+          .toString(36)
+          .slice(2)}`,
+        file,
+        module: "Registration Form"
+      });
+    });
+
+    if (incomingFiles.length === 0) {
+      return;
+    }
+
+    setQueuedUploadFiles((current) => current.concat(incomingFiles));
+    setUploadErrorMessage("");
+    setUploadSuccessMessage("");
+  }
+
+  function updateQueuedFileModule(
+    fileId: string,
+    module: (typeof fileModules)[number]
+  ) {
+    setQueuedUploadFiles((current) =>
+      current.map((item) =>
+        item.id === fileId
+          ? {
+              ...item,
+              module
+            }
+          : item
+      )
+    );
+  }
+
+  function removeQueuedFile(fileId: string) {
+    setQueuedUploadFiles((current) =>
+      current.filter((item) => item.id !== fileId)
+    );
   }
 
   async function handleDeleteFile() {
@@ -477,20 +571,15 @@ export function StudentDetailPage() {
       {activeTab === "files" && (
         <section className="space-y-4">
           <StudentFileUploadCard
-            fileNotes={fileNotes}
             isUploading={isUploading}
-            selectedFile={selectedFile}
-            selectedModule={selectedModule}
+            queuedFiles={queuedUploadFiles}
+            uploadNotes={uploadNotes}
             uploadErrorMessage={uploadErrorMessage}
             uploadSuccessMessage={uploadSuccessMessage}
-            onClearFile={() => setSelectedFile(null)}
-            onFileChange={(file) => {
-              setSelectedFile(file);
-              setUploadErrorMessage("");
-              setUploadSuccessMessage("");
-            }}
-            onModuleChange={setSelectedModule}
-            onNotesChange={setFileNotes}
+            onFilesChange={queueFiles}
+            onModuleChange={updateQueuedFileModule}
+            onNotesChange={setUploadNotes}
+            onRemoveFile={removeQueuedFile}
             onSubmit={handleFileUpload}
           />
           <StudentFileList
@@ -593,30 +682,31 @@ function InfoCard({ title, rows }: InfoCardProps) {
 }
 
 type StudentFileUploadCardProps = {
-  fileNotes: string;
   isUploading: boolean;
-  selectedFile: File | null;
-  selectedModule: (typeof fileModules)[number];
+  queuedFiles: QueuedStudentUploadFile[];
+  uploadNotes: string;
   uploadErrorMessage: string;
   uploadSuccessMessage: string;
-  onClearFile: () => void;
-  onFileChange: (file: File | null) => void;
-  onModuleChange: (module: (typeof fileModules)[number]) => void;
+  onFilesChange: (files: FileList | null) => void;
+  onModuleChange: (
+    fileId: string,
+    module: (typeof fileModules)[number]
+  ) => void;
   onNotesChange: (value: string) => void;
+  onRemoveFile: (fileId: string) => void;
   onSubmit: (event: FormEvent<HTMLFormElement>) => void;
 };
 
 function StudentFileUploadCard({
-  fileNotes,
   isUploading,
-  selectedFile,
-  selectedModule,
+  queuedFiles,
+  uploadNotes,
   uploadErrorMessage,
   uploadSuccessMessage,
-  onClearFile,
-  onFileChange,
+  onFilesChange,
   onModuleChange,
   onNotesChange,
+  onRemoveFile,
   onSubmit
 }: StudentFileUploadCardProps) {
   return (
@@ -638,38 +728,29 @@ function StudentFileUploadCard({
 
         <button
           type="submit"
-          disabled={isUploading || !selectedFile}
+          disabled={isUploading || queuedFiles.length === 0}
           className="inline-flex items-center justify-center gap-2 rounded-2xl bg-brand-blue px-5 py-3 text-sm font-black text-white shadow-glow transition hover:bg-brand-navy disabled:cursor-not-allowed disabled:opacity-50"
         >
           {isUploading ? <Loader2 className="animate-spin" size={18} /> : <UploadCloud size={18} />}
-          {isUploading ? "Uploading" : "Upload file"}
+          {isUploading
+            ? "Uploading"
+            : queuedFiles.length > 1
+              ? `Upload ${queuedFiles.length} files`
+              : "Upload file"}
         </button>
       </div>
 
-      <div className="mt-5 grid gap-4 lg:grid-cols-[220px_1fr]">
-        <label className="grid gap-2 text-sm font-bold text-slate-600 dark:text-slate-300">
-          File module
-          <select
-            value={selectedModule}
-            onChange={(event) =>
-              onModuleChange(event.target.value as (typeof fileModules)[number])
-            }
-            className="rounded-2xl border border-slate-200 bg-white px-4 py-3 font-semibold text-slate-900 outline-none transition focus:border-brand-blue focus:ring-4 focus:ring-brand-blue/10 dark:border-white/10 dark:bg-white/5 dark:text-white"
-          >
-            {fileModules.map((module) => (
-              <option key={module} value={module}>
-                {module}
-              </option>
-            ))}
-          </select>
-        </label>
-
+      <div className="mt-5 grid gap-4">
         <label className="grid cursor-pointer place-items-center rounded-3xl border border-dashed border-brand-blue/30 bg-brand-blue/5 px-4 py-6 text-center transition hover:border-brand-blue hover:bg-brand-blue/10 dark:bg-brand-blue/10">
           <input
             type="file"
+            multiple
             accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,image/jpeg,image/png"
             className="sr-only"
-            onChange={(event) => onFileChange(event.target.files?.[0] ?? null)}
+            onChange={(event) => {
+              onFilesChange(event.target.files);
+              event.currentTarget.value = "";
+            }}
           />
           <UploadCloud className="text-brand-blue" size={28} />
           <span className="mt-2 text-sm font-black text-slate-900 dark:text-white">
@@ -681,29 +762,55 @@ function StudentFileUploadCard({
         </label>
       </div>
 
-      {selectedFile ? (
-        <div className="mt-4 flex flex-col gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 dark:border-white/10 dark:bg-white/5 sm:flex-row sm:items-center sm:justify-between">
-          <div className="min-w-0">
-            <p className="truncate text-sm font-black">{selectedFile.name}</p>
-            <p className="text-xs font-semibold text-slate-500 dark:text-slate-400">
-              {selectedFile.type || "Unknown file type"} - {fileSizeLabel(selectedFile.size)}
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={onClearFile}
-            className="inline-flex items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-3 py-2 text-xs font-black text-slate-600 transition hover:text-rose-600 dark:border-white/10 dark:bg-white/5 dark:text-slate-300"
-          >
-            <X size={15} />
-            Remove
-          </button>
+      {queuedFiles.length > 0 ? (
+        <div className="mt-4 space-y-3">
+          {queuedFiles.map((item) => (
+            <div
+              key={item.id}
+              className="grid gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 dark:border-white/10 dark:bg-white/5 lg:grid-cols-[1fr_220px_auto] lg:items-center"
+            >
+              <div className="min-w-0">
+                <p className="truncate text-sm font-black">{item.file.name}</p>
+                <p className="text-xs font-semibold text-slate-500 dark:text-slate-400">
+                  {mimeTypeForFile(item.file)} - {fileSizeLabel(item.file.size)}
+                </p>
+              </div>
+              <label className="grid gap-1 text-xs font-black uppercase tracking-[0.14em] text-slate-500 dark:text-slate-400">
+                Document type
+                <select
+                  value={item.module}
+                  onChange={(event) =>
+                    onModuleChange(
+                      item.id,
+                      event.target.value as (typeof fileModules)[number]
+                    )
+                  }
+                  className="rounded-2xl border border-slate-200 bg-white px-3 py-2 text-sm font-black normal-case tracking-normal text-slate-800 outline-none transition focus:border-brand-blue focus:ring-4 focus:ring-brand-blue/10 dark:border-white/10 dark:bg-white/5 dark:text-white"
+                >
+                  {fileModules.map((module) => (
+                    <option key={module} value={module}>
+                      {module}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <button
+                type="button"
+                onClick={() => onRemoveFile(item.id)}
+                className="inline-flex items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-3 py-2 text-xs font-black text-slate-600 transition hover:text-rose-600 dark:border-white/10 dark:bg-white/5 dark:text-slate-300"
+              >
+                <X size={15} />
+                Remove
+              </button>
+            </div>
+          ))}
         </div>
       ) : null}
 
       <label className="mt-4 grid gap-2 text-sm font-bold text-slate-600 dark:text-slate-300">
         Notes
         <textarea
-          value={fileNotes}
+          value={uploadNotes}
           onChange={(event) => onNotesChange(event.target.value)}
           rows={3}
           placeholder="Optional note for this file"
