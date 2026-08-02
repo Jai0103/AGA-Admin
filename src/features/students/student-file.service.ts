@@ -15,6 +15,10 @@ export type StudentFile = {
   notes?: string;
 };
 
+export type ListFilesResponse = {
+  files: StudentFile[];
+};
+
 export type ListStudentFilesResponse = {
   files: StudentFile[];
 };
@@ -42,6 +46,10 @@ export type DeleteStudentFileResponse = {
   studentId: string;
   deleted: boolean;
 };
+
+export function listFilesFromApi() {
+  return apiGet<ListFilesResponse>("listFiles");
+}
 
 export function listStudentFilesFromApi(studentId: string) {
   return apiGet<ListStudentFilesResponse>("listStudentFiles", { studentId });
