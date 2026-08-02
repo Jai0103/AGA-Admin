@@ -40,6 +40,7 @@ type FileModuleFilter = (typeof fileModules)[number];
 type FileFilters = {
   search: string;
   module: FileModuleFilter;
+  studentId: string;
 };
 
 function formatDate(value?: string) {
@@ -80,7 +81,8 @@ export function FileManagerPage() {
   const [isDeleting, setIsDeleting] = useState(false);
   const [filters, setFilters] = useState<FileFilters>({
     search: "",
-    module: "All"
+    module: "All",
+    studentId: "All"
   });
 
   useEffect(() => {
@@ -141,10 +143,34 @@ export function FileManagerPage() {
         const matchesSearch = !search || searchableValues.includes(search);
         const matchesModule =
           filters.module === "All" || file.module === filters.module;
+        const matchesStudent =
+          filters.studentId === "All" || file.studentId === filters.studentId;
 
-        return matchesSearch && matchesModule;
+        return matchesSearch && matchesModule && matchesStudent;
       });
   }, [files, filters]);
+
+  const studentOptions = useMemo(() => {
+    const options = new Map<string, string>();
+
+    files.forEach((file) => {
+      if (!file.studentId) {
+        return;
+      }
+
+      const label = `${file.studentName || "Unknown student"} - ${
+        file.studentNumber || file.studentId
+      }`;
+      options.set(file.studentId, label);
+    });
+
+    return [
+      { label: "All students", value: "All" },
+      ...Array.from(options.entries())
+        .map(([value, label]) => ({ label, value }))
+        .sort((first, second) => first.label.localeCompare(second.label))
+    ];
+  }, [files]);
 
   const summary = useMemo(() => {
     const uniqueStudents = new Set(files.map((file) => file.studentId)).size;
@@ -205,7 +231,7 @@ export function FileManagerPage() {
       </section>
 
       <section className="rounded-3xl border border-white/70 bg-white/86 p-5 shadow-panel backdrop-blur-xl dark:border-white/10 dark:bg-white/7">
-        <div className="grid gap-3 lg:grid-cols-[1fr_auto]">
+        <div className="grid gap-3 xl:grid-cols-[1fr_auto_auto]">
           <label className="flex min-w-0 items-center gap-3 rounded-2xl border border-slate-200 bg-white/80 px-4 py-3 dark:border-white/10 dark:bg-white/5">
             <Search size={18} className="text-slate-400" />
             <input
@@ -232,6 +258,28 @@ export function FileManagerPage() {
               }))
             }
           />
+
+          <label className="grid gap-1">
+            <span className="text-xs font-black uppercase tracking-[0.14em] text-slate-500 dark:text-slate-400">
+              Student
+            </span>
+            <select
+              value={filters.studentId}
+              onChange={(event) =>
+                setFilters((current) => ({
+                  ...current,
+                  studentId: event.target.value
+                }))
+              }
+              className="min-h-[46px] min-w-[260px] rounded-2xl border border-slate-200 bg-white/80 px-4 py-3 text-sm font-bold text-slate-700 outline-none transition focus:border-brand-blue focus:ring-4 focus:ring-brand-sky/10 dark:border-white/10 dark:bg-white/5 dark:text-slate-100"
+            >
+              {studentOptions.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </label>
         </div>
       </section>
 
