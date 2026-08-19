@@ -3,22 +3,25 @@ import {
   CalendarDays,
   FileSignature,
   FileText,
-  Plus,
-  Search
+  RefreshCw,
+  Search,
+  ShieldCheck
 } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import { EmptyState } from "../../components/ui/EmptyState";
 import { FilterSelect } from "../../components/ui/FilterSelect";
 import { PageHeader } from "../../components/ui/PageHeader";
 import { StatusBadge } from "../../components/ui/StatusBadge";
 import { SummaryCard } from "../../components/ui/SummaryCard";
-import { trainingEnrolments } from "./enrolment.data";
+import { listTrainingEnrolmentsFromApi } from "./enrolment.service";
 import type {
-  AgreementStatus,
   EnrolmentFilters,
   EnrolmentInvoicePdfStatus,
-  EnrolmentStatus
+  EnrolmentStatus,
+  TeaStatus,
+  TrainingEnrolment,
+  TrainingStatus
 } from "./enrolment.types";
 
 const enrolmentStatuses: Array<"All" | EnrolmentStatus> = [
@@ -31,12 +34,22 @@ const enrolmentStatuses: Array<"All" | EnrolmentStatus> = [
   "Cancelled"
 ];
 
-const agreementStatuses: Array<"All" | AgreementStatus> = [
+const trainingStatuses: Array<"All" | TrainingStatus> = [
   "All",
-  "Not Sent",
+  "Not Started",
+  "In Progress",
+  "Completed",
+  "Suspended"
+];
+
+const teaStatuses: Array<"All" | TeaStatus> = [
+  "All",
+  "Pending",
+  "Generated",
   "Sent",
   "Signed",
-  "Rejected"
+  "Rejected",
+  "Not Required"
 ];
 
 const invoicePdfStatuses: Array<"All" | EnrolmentInvoicePdfStatus> = [
@@ -50,81 +63,143 @@ const invoicePdfStatuses: Array<"All" | EnrolmentInvoicePdfStatus> = [
 function formatDate(value?: string) {
   if (!value) return "-";
 
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return value;
+  }
+
   return new Intl.DateTimeFormat("en-SG", {
     day: "2-digit",
     month: "short",
     year: "numeric"
-  }).format(new Date(value));
+  }).format(date);
+}
+
+function formatDateTime(value?: string) {
+  if (!value) return "-";
+
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return value;
+  }
+
+  return new Intl.DateTimeFormat("en-SG", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit"
+  }).format(date);
 }
 
 export function TrainingEnrolmentsPage() {
+  const [enrolments, setEnrolments] = useState<TrainingEnrolment[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [errorMessage, setErrorMessage] = useState("");
   const [filters, setFilters] = useState<EnrolmentFilters>({
     search: "",
-    status: "All",
-    agreementStatus: "All",
+    enrolmentStatus: "All",
+    trainingStatus: "All",
+    teaStatus: "All",
     invoicePdfStatus: "All"
   });
+
+  async function loadEnrolments() {
+    setIsLoading(true);
+    setErrorMessage("");
+
+    try {
+      const response = await listTrainingEnrolmentsFromApi();
+      setEnrolments(response.enrolments);
+    } catch (error) {
+      setErrorMessage(
+        error instanceof Error ? error.message : "Could not load enrolments."
+      );
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    void loadEnrolments();
+  }, []);
 
   const filteredEnrolments = useMemo(() => {
     const search = filters.search.trim().toLowerCase();
 
-    return trainingEnrolments.filter((enrolment) => {
+    return enrolments.filter((enrolment) => {
       const matchesSearch =
         !search ||
         enrolment.studentName.toLowerCase().includes(search) ||
         enrolment.studentNumber.toLowerCase().includes(search) ||
+        enrolment.enrolmentNumber.toLowerCase().includes(search) ||
         enrolment.courseCode.toLowerCase().includes(search) ||
         enrolment.courseName.toLowerCase().includes(search) ||
-        enrolment.invoiceNumber.toLowerCase().includes(search);
+        enrolment.trainerName.toLowerCase().includes(search);
 
-      const matchesStatus =
-        filters.status === "All" || enrolment.status === filters.status;
+      const matchesEnrolmentStatus =
+        filters.enrolmentStatus === "All" ||
+        enrolment.enrolmentStatus === filters.enrolmentStatus;
 
-      const matchesAgreement =
-        filters.agreementStatus === "All" ||
-        enrolment.agreementStatus === filters.agreementStatus;
+      const matchesTrainingStatus =
+        filters.trainingStatus === "All" ||
+        enrolment.trainingStatus === filters.trainingStatus;
 
-      const matchesInvoicePdf =
+      const matchesTeaStatus =
+        filters.teaStatus === "All" || enrolment.teaStatus === filters.teaStatus;
+
+      const matchesInvoicePdfStatus =
         filters.invoicePdfStatus === "All" ||
         enrolment.invoicePdfStatus === filters.invoicePdfStatus;
 
-      return matchesSearch && matchesStatus && matchesAgreement && matchesInvoicePdf;
+      return (
+        matchesSearch &&
+        matchesEnrolmentStatus &&
+        matchesTrainingStatus &&
+        matchesTeaStatus &&
+        matchesInvoicePdfStatus
+      );
     });
-  }, [filters]);
+  }, [enrolments, filters]);
 
   const summary = useMemo(() => {
-    const inTraining = trainingEnrolments.filter(
-      (enrolment) => enrolment.status === "In Training"
+    const inTraining = enrolments.filter(
+      (enrolment) => enrolment.enrolmentStatus === "In Training"
     ).length;
-    const pendingReview = trainingEnrolments.filter(
-      (enrolment) => enrolment.status === "Pending Review"
+    const pendingTea = enrolments.filter(
+      (enrolment) => enrolment.teaStatus === "Pending"
     ).length;
-    const signedAgreements = trainingEnrolments.filter(
-      (enrolment) => enrolment.agreementStatus === "Signed"
+    const readyCertificates = enrolments.filter(
+      (enrolment) =>
+        enrolment.certificateStatus === "Eligible" ||
+        enrolment.certificateStatus === "Ready"
     ).length;
-    const invoicePdfs = trainingEnrolments.reduce(
-      (total, enrolment) => total + enrolment.invoicePdfCount,
+    const invoicePdfs = enrolments.reduce(
+      (total, enrolment) => total + Number(enrolment.invoicePdfCount || 0),
       0
     );
 
-    return { inTraining, pendingReview, signedAgreements, invoicePdfs };
-  }, []);
+    return { inTraining, pendingTea, readyCertificates, invoicePdfs };
+  }, [enrolments]);
 
   return (
     <div className="space-y-6">
       <PageHeader
         eyebrow="Training Enrolments"
-        title="Enrolments"
-        description="Track course enrolments, training progress, TEA signatures, registration form verification, uploaded finance invoice PDFs, and supporting documents."
+        title="Enrolment Workflow"
+        description="Manage course enrolments from approval through training, TEA, registration documents, invoice PDFs, and certificate readiness."
         icon={BookOpenCheck}
         accentClassName="border-brand-sky"
       >
         <button
           type="button"
-          className="inline-flex items-center justify-center gap-2 rounded-2xl bg-brand-blue px-5 py-3 text-sm font-bold text-white shadow-glow transition hover:bg-brand-navy"
+          onClick={() => void loadEnrolments()}
+          className="inline-flex items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white/90 px-5 py-3 text-sm font-bold text-brand-blue shadow-sm transition hover:border-brand-sky hover:bg-sky-50 dark:border-white/10 dark:bg-white/8 dark:text-sky-200 dark:hover:bg-white/12"
         >
-          <Plus size={18} />
-          New Enrolment
+          <RefreshCw size={18} className={isLoading ? "animate-spin" : ""} />
+          Refresh
         </button>
       </PageHeader>
 
@@ -136,15 +211,15 @@ export function TrainingEnrolmentsPage() {
           tone="blue"
         />
         <SummaryCard
-          label="Pending Review"
-          value={String(summary.pendingReview)}
-          icon={CalendarDays}
+          label="Pending TEA"
+          value={String(summary.pendingTea)}
+          icon={FileSignature}
           tone="amber"
         />
         <SummaryCard
-          label="Signed TEA"
-          value={String(summary.signedAgreements)}
-          icon={FileSignature}
+          label="Certificate Ready"
+          value={String(summary.readyCertificates)}
+          icon={ShieldCheck}
           tone="emerald"
         />
         <SummaryCard
@@ -156,7 +231,7 @@ export function TrainingEnrolmentsPage() {
       </section>
 
       <section className="rounded-3xl border border-white/70 bg-white/86 p-5 shadow-panel backdrop-blur-xl dark:border-white/10 dark:bg-white/7">
-        <div className="grid gap-3 lg:grid-cols-[1fr_auto_auto_auto]">
+        <div className="grid gap-3 xl:grid-cols-[1fr_auto_auto_auto_auto]">
           <label className="flex min-w-0 items-center gap-3 rounded-2xl border border-slate-200 bg-white/80 px-4 py-3 dark:border-white/10 dark:bg-white/5">
             <Search size={18} className="text-slate-400" />
             <input
@@ -168,36 +243,48 @@ export function TrainingEnrolmentsPage() {
                 }))
               }
               className="w-full bg-transparent text-sm outline-none placeholder:text-slate-400"
-              placeholder="Search student, course, code, or invoice..."
+              placeholder="Search student, enrolment, course, or trainer..."
             />
           </label>
 
           <FilterSelect
-            label="Enrolment status"
-            value={filters.status}
+            label="Enrolment"
+            value={filters.enrolmentStatus}
             options={enrolmentStatuses}
             onChange={(value) =>
               setFilters((current) => ({
                 ...current,
-                status: value as EnrolmentFilters["status"]
+                enrolmentStatus: value as EnrolmentFilters["enrolmentStatus"]
               }))
             }
           />
 
           <FilterSelect
-            label="Agreement status"
-            value={filters.agreementStatus}
-            options={agreementStatuses}
+            label="Training"
+            value={filters.trainingStatus}
+            options={trainingStatuses}
             onChange={(value) =>
               setFilters((current) => ({
                 ...current,
-                agreementStatus: value as EnrolmentFilters["agreementStatus"]
+                trainingStatus: value as EnrolmentFilters["trainingStatus"]
               }))
             }
           />
 
           <FilterSelect
-            label="Invoice PDF status"
+            label="TEA"
+            value={filters.teaStatus}
+            options={teaStatuses}
+            onChange={(value) =>
+              setFilters((current) => ({
+                ...current,
+                teaStatus: value as EnrolmentFilters["teaStatus"]
+              }))
+            }
+          />
+
+          <FilterSelect
+            label="Invoice PDF"
             value={filters.invoicePdfStatus}
             options={invoicePdfStatuses}
             onChange={(value) =>
@@ -210,7 +297,26 @@ export function TrainingEnrolmentsPage() {
         </div>
       </section>
 
-      {filteredEnrolments.length === 0 ? (
+      {errorMessage ? (
+        <section className="rounded-3xl border border-rose-200 bg-rose-50/90 p-6 text-sm text-rose-700 shadow-panel dark:border-rose-400/30 dark:bg-rose-950/30 dark:text-rose-100">
+          <p className="font-black">Could not load enrolments</p>
+          <p className="mt-1">{errorMessage}</p>
+        </section>
+      ) : null}
+
+      {isLoading ? (
+        <section className="rounded-3xl border border-white/70 bg-white/86 p-6 shadow-panel backdrop-blur-xl dark:border-white/10 dark:bg-white/7">
+          <div className="h-4 w-40 animate-pulse rounded-full bg-slate-200 dark:bg-white/10" />
+          <div className="mt-5 grid gap-3">
+            {[0, 1, 2].map((item) => (
+              <div
+                key={item}
+                className="h-20 animate-pulse rounded-2xl bg-slate-100 dark:bg-white/8"
+              />
+            ))}
+          </div>
+        </section>
+      ) : filteredEnrolments.length === 0 ? (
         <EmptyState
           icon={BookOpenCheck}
           title="No enrolments found"
@@ -224,64 +330,73 @@ export function TrainingEnrolmentsPage() {
                 <tr>
                   <th className="px-5 py-4">Enrolment</th>
                   <th className="px-5 py-4">Student</th>
-                  <th className="px-5 py-4">Schedule</th>
-                  <th className="px-5 py-4">Documents</th>
-                  <th className="px-5 py-4">Invoice PDF</th>
-                  <th className="px-5 py-4">Notes</th>
+                  <th className="px-5 py-4">Training</th>
+                  <th className="px-5 py-4">Workflow</th>
+                  <th className="px-5 py-4">Files</th>
+                  <th className="px-5 py-4">Updated</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-200 dark:divide-white/10">
                 {filteredEnrolments.map((enrolment) => (
                   <tr key={enrolment.enrolmentId} className="align-top">
                     <td className="px-5 py-5">
-                      <div className="font-bold">{enrolment.enrolmentId}</div>
+                      <div className="font-bold">{enrolment.enrolmentNumber}</div>
                       <div className="mt-1 text-slate-500 dark:text-slate-400">
                         {enrolment.courseCode}
                       </div>
                       <div className="mt-3">
-                        <StatusBadge value={enrolment.status} />
+                        <StatusBadge value={enrolment.enrolmentStatus} />
                       </div>
                     </td>
+
                     <td className="px-5 py-5">
                       <div className="font-semibold">{enrolment.studentName}</div>
                       <div className="mt-1 text-slate-500 dark:text-slate-400">
                         {enrolment.studentNumber}
                       </div>
                       <div className="mt-2 text-slate-500 dark:text-slate-400">
-                        Trainer: {enrolment.trainerName}
+                        {enrolment.courseName}
                       </div>
                     </td>
+
                     <td className="px-5 py-5 text-slate-600 dark:text-slate-300">
-                      <div>Start: {formatDate(enrolment.startDate)}</div>
+                      <div className="flex flex-wrap gap-2">
+                        <StatusBadge value={enrolment.trainingStatus} />
+                        <StatusBadge value={enrolment.paymentStatus} />
+                      </div>
+                      <div className="mt-3">Start: {formatDate(enrolment.startDate)}</div>
                       <div className="mt-1">
                         Target: {formatDate(enrolment.targetCompletionDate)}
                       </div>
                       <div className="mt-1">
-                        Complete: {formatDate(enrolment.completionDate)}
+                        Trainer: {enrolment.trainerName || "Unassigned"}
                       </div>
                     </td>
+
                     <td className="px-5 py-5">
                       <div className="flex flex-wrap gap-2">
-                        <StatusBadge value={enrolment.agreementStatus} />
-                        <StatusBadge value={enrolment.registrationStatus} />
+                        <StatusBadge value={enrolment.teaStatus} />
+                        <StatusBadge value={enrolment.registrationFormStatus} />
+                        <StatusBadge value={enrolment.certificateStatus} />
+                      </div>
+                      <p className="mt-3 text-slate-500 dark:text-slate-400">
+                        {enrolment.notes || "-"}
+                      </p>
+                    </td>
+
+                    <td className="px-5 py-5">
+                      <div>
+                        <StatusBadge value={enrolment.invoicePdfStatus} />
                       </div>
                       <div className="mt-3 flex items-center gap-2 text-slate-500 dark:text-slate-400">
                         <FileText size={16} />
-                        {enrolment.uploadedPdfCount} total PDFs
-                      </div>
-                    </td>
-                    <td className="px-5 py-5">
-                      <div className="font-semibold">{enrolment.invoiceNumber}</div>
-                      <div className="mt-2">
-                        <StatusBadge value={enrolment.invoicePdfStatus} />
-                      </div>
-                      <div className="mt-3 font-semibold">
                         {enrolment.invoicePdfCount} invoice PDF
-                        {enrolment.invoicePdfCount === 1 ? "" : "s"}
+                        {Number(enrolment.invoicePdfCount) === 1 ? "" : "s"}
                       </div>
                     </td>
+
                     <td className="px-5 py-5 text-slate-600 dark:text-slate-300">
-                      {enrolment.notes}
+                      {formatDateTime(enrolment.updatedAt)}
                     </td>
                   </tr>
                 ))}
@@ -296,37 +411,39 @@ export function TrainingEnrolmentsPage() {
                 className="rounded-3xl border border-white/70 bg-white/86 p-5 shadow-panel backdrop-blur-xl dark:border-white/10 dark:bg-white/7"
               >
                 <div className="flex items-start justify-between gap-4">
-                  <div>
-                    <p className="text-lg font-black">{enrolment.studentName}</p>
+                  <div className="min-w-0">
+                    <p className="truncate text-lg font-black">
+                      {enrolment.studentName}
+                    </p>
                     <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
                       {enrolment.courseName}
                     </p>
                   </div>
-                  <StatusBadge value={enrolment.status} />
+                  <StatusBadge value={enrolment.enrolmentStatus} />
                 </div>
 
                 <div className="mt-4 grid grid-cols-2 gap-3 text-sm text-slate-600 dark:text-slate-300">
+                  <Detail label="Training" value={enrolment.trainingStatus} />
                   <Detail label="Start" value={formatDate(enrolment.startDate)} />
                   <Detail
                     label="Target"
                     value={formatDate(enrolment.targetCompletionDate)}
                   />
-                  <div>
-                    <p className="text-xs font-bold uppercase text-slate-400">
-                      TEA
-                    </p>
-                    <StatusBadge value={enrolment.agreementStatus} />
-                  </div>
-                  <div>
-                    <p className="text-xs font-bold uppercase text-slate-400">
-                      Invoice PDF
-                    </p>
-                    <StatusBadge value={enrolment.invoicePdfStatus} />
-                  </div>
+                  <Detail
+                    label="Trainer"
+                    value={enrolment.trainerName || "Unassigned"}
+                  />
+                </div>
+
+                <div className="mt-4 flex flex-wrap gap-2">
+                  <StatusBadge value={enrolment.teaStatus} />
+                  <StatusBadge value={enrolment.registrationFormStatus} />
+                  <StatusBadge value={enrolment.certificateStatus} />
+                  <StatusBadge value={enrolment.invoicePdfStatus} />
                 </div>
 
                 <p className="mt-4 text-sm text-slate-500 dark:text-slate-400">
-                  {enrolment.notes}
+                  {enrolment.notes || enrolment.enrolmentNumber}
                 </p>
               </article>
             ))}
@@ -346,7 +463,7 @@ function Detail({ label, value }: DetailProps) {
   return (
     <div>
       <p className="text-xs font-bold uppercase text-slate-400">{label}</p>
-      {value}
+      <p className="mt-1 font-semibold">{value}</p>
     </div>
   );
 }
